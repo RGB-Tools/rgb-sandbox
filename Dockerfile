@@ -1,49 +1,57 @@
 ARG BUILDER_DIR=/srv/rgb
 
-
-FROM rust:1.60.0-slim-bullseye as builder
-
-ARG SRC_DIR=/usr/local/src/rgb
-ARG BUILDER_DIR
+FROM rust:1.66.0-slim-bullseye as builder
 
 RUN apt-get update \
     && apt-get -y install --no-install-recommends \
         build-essential cmake git pkg-config \
         libpq-dev libssl-dev libzmq3-dev libsqlite3-dev
 
+ARG SRC_DIR=/usr/local/src/rgb
 WORKDIR "$SRC_DIR"
 
-RUN cargo install rgb_node --version "=0.4.2" \
-        --locked --all-features --root "${BUILDER_DIR}"
+ARG BUILDER_DIR
+ARG VER_STORE="0.8.2"
+ARG VER_NODE="0.8.4"
+ARG VER_CLI="0.8.4"
+ARG VER_STD="0.8.2"
+ARG VER_RGB20="0.8.0"
+RUN cargo install store_daemon --version "${VER_STORE}" \
+        --debug --locked --all-features --root "${BUILDER_DIR}"
+RUN cargo install rgb_node --version "${VER_NODE}" \
+        --debug --locked --all-features --root "${BUILDER_DIR}"
+RUN cargo install rgb-cli --version "${VER_CLI}" \
+        --debug --locked --all-features --root "${BUILDER_DIR}"
+RUN cargo install rgb20 --version "${VER_RGB20}" \
+        --debug --locked --all-features --root "${BUILDER_DIR}"
+RUN cargo install rgb-std \
+        --git "https://github.com/RGB-WG/rgb-std" --branch "v0.8" \
+        --debug --locked --all-features --root "${BUILDER_DIR}"
 
 
 FROM debian:bullseye-slim
 
-ARG BUILDER_DIR
-ARG BIN_DIR=/usr/local/bin
 ARG DATA_DIR=/var/lib/rgb
-ARG USER=rgbd
+ARG USER=rgb
 
 RUN apt-get update \
     && apt-get -y install --no-install-recommends \
-       libsqlite3-0 \
-       libssl1.1 \
-       tini \
+       libsqlite3-0 libssl1.1 supervisor \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN adduser --home "${DATA_DIR}" --shell /bin/bash --disabled-login \
         --gecos "${USER} user" ${USER}
 
+ARG BUILDER_DIR
+ARG BIN_DIR=/usr/local/bin
 COPY --from=builder --chown=${USER}:${USER} \
      "${BUILDER_DIR}/bin/" "${BIN_DIR}"
 
 WORKDIR "${BIN_DIR}"
-USER ${USER}
+USER $USER
 
 VOLUME "$DATA_DIR"
 
-ENTRYPOINT ["/usr/bin/tini", "-g", "--", "/usr/local/bin/rgbd", \
-            "--bin-dir", "/usr/local/bin", "--data-dir", "/var/lib/rgb"]
-
-CMD ["-vvvv"]
+COPY supervisor.conf /srv/supervisor.conf
+ENTRYPOINT ["supervisord", "-c", "/srv/supervisor.conf"]

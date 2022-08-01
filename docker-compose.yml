@@ -3,9 +3,8 @@ version: '3.2'
 services:
   rgb-node-0:
     container_name: rgb-node-0
-    image: rgb-node:0.4.2
+    image: rgb-node:0.8
     build: .
-    command: "-vvvv --contract fungible -n regtest"
     environment:
       RGB_ELECTRUM_SERVER: electrs:50001
     volumes:
@@ -13,9 +12,8 @@ services:
     working_dir: /var/lib/rgb
   rgb-node-1:
     container_name: rgb-node-1
-    image: rgb-node:0.4.2
+    image: rgb-node:0.8
     build: .
-    command: "-vvvv --contract fungible -n regtest"
     environment:
       RGB_ELECTRUM_SERVER: electrs:50001
     volumes:
@@ -23,9 +21,8 @@ services:
     working_dir: /var/lib/rgb
   rgb-node-2:
     container_name: rgb-node-2
-    image: rgb-node:0.4.2
+    image: rgb-node:0.8
     build: .
-    command: "-vvvv --contract fungible -n regtest"
     environment:
       RGB_ELECTRUM_SERVER: electrs:50001
     volumes:
@@ -39,8 +36,10 @@ services:
       - ./datacore:/srv/app/.bitcoin
   electrs:
     container_name: rgb-electrs
-    image: registry.gitlab.com/hashbeam/docker/electrs:0.9.6
+    image: registry.gitlab.com/hashbeam/docker/electrs:0.9.9
     volumes:
       - ./dataindex:/srv/app/db
     depends_on:
       - bitcoind
+    ports:
+      - 50001:50001
