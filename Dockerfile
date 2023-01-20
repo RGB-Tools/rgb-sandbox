@@ -33,6 +33,7 @@ FROM debian:bullseye-slim
 
 ARG DATA_DIR=/var/lib/rgb
 ARG USER=rgb
+ENV USER=${USER}
 
 RUN apt-get update \
     && apt-get -y install --no-install-recommends \
@@ -48,10 +49,12 @@ ARG BIN_DIR=/usr/local/bin
 COPY --from=builder --chown=${USER}:${USER} \
      "${BUILDER_DIR}/bin/" "${BIN_DIR}"
 
+COPY supervisor.conf /srv/supervisor.conf
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 WORKDIR "${BIN_DIR}"
-USER $USER
 
 VOLUME "$DATA_DIR"
 
-COPY supervisor.conf /srv/supervisor.conf
-ENTRYPOINT ["supervisord", "-c", "/srv/supervisor.conf"]
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

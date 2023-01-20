@@ -6,6 +6,8 @@ services:
     image: rgb-node:0.8
     build: .
     environment:
+      MYUID: 1000
+      MYGID: 1000
       RGB_ELECTRUM_SERVER: electrs:50001
     volumes:
       - ./data0:/var/lib/rgb
@@ -15,6 +17,8 @@ services:
     image: rgb-node:0.8
     build: .
     environment:
+      MYUID: 1000
+      MYGID: 1000
       RGB_ELECTRUM_SERVER: electrs:50001
     volumes:
       - ./data1:/var/lib/rgb
@@ -24,6 +28,8 @@ services:
     image: rgb-node:0.8
     build: .
     environment:
+      MYUID: 1000
+      MYGID: 1000
       RGB_ELECTRUM_SERVER: electrs:50001
     volumes:
       - ./data2:/var/lib/rgb
@@ -32,11 +38,17 @@ services:
     container_name: rgb-bitcoind
     image: registry.gitlab.com/hashbeam/docker/bitcoind:23.0
     command: "-fallbackfee=0.0002"
+    environment:
+      MYUID: 1000
+      MYGID: 1000
     volumes:
       - ./datacore:/srv/app/.bitcoin
   electrs:
     container_name: rgb-electrs
     image: registry.gitlab.com/hashbeam/docker/electrs:0.9.9
+    environment:
+      MYUID: 1000
+      MYGID: 1000
     volumes:
       - ./dataindex:/srv/app/db
     depends_on:

@@ -43,6 +43,10 @@ Clone the repository:
 git clone https://github.com/RGB-Tools/rgb-sandbox
 ```
 
+The default setup assumes the user and group IDs are `1000`. If that's not the
+case, the `MYUID` and `MYGID` environment variables  in the
+`docker-compose.yml` file need to be updated accordingly.
+
 The automated demo does not require any other setup steps.
 
 The manual version requires handling of data directories and services, see the

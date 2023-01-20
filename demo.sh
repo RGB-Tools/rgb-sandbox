@@ -96,7 +96,7 @@ install_bdk_cli() {
 
 cleanup() {
     docker-compose down
-    rm -r data{0,1,2,core,index}
+    rm -rf data{0,1,2,core,index}
 }
 
 start_services() {
