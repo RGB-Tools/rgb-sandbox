@@ -1,6 +1,6 @@
 ARG BUILDER_DIR=/srv/rgb
 
-FROM rust:1.66.0-slim-bullseye as builder
+FROM rust:1.67-slim-bullseye as builder
 
 RUN apt-get update \
     && apt-get -y install --no-install-recommends \
@@ -11,11 +11,11 @@ ARG SRC_DIR=/usr/local/src/rgb
 WORKDIR "$SRC_DIR"
 
 ARG BUILDER_DIR
-ARG VER_STORE="0.8.2"
-ARG VER_NODE="0.8.4"
-ARG VER_CLI="0.8.4"
-ARG VER_STD="0.8.2"
-ARG VER_RGB20="0.8.0"
+ARG VER_STORE="0.9.0"
+ARG VER_NODE="0.9.1"
+ARG VER_CLI="0.9.1"
+ARG VER_RGB20="0.9.0"
+ARG VER_STD="0.9.0"
 RUN cargo install store_daemon --version "${VER_STORE}" \
         --debug --locked --all-features --root "${BUILDER_DIR}"
 RUN cargo install rgb_node --version "${VER_NODE}" \
@@ -24,8 +24,7 @@ RUN cargo install rgb-cli --version "${VER_CLI}" \
         --debug --locked --all-features --root "${BUILDER_DIR}"
 RUN cargo install rgb20 --version "${VER_RGB20}" \
         --debug --locked --all-features --root "${BUILDER_DIR}"
-RUN cargo install rgb-std \
-        --git "https://github.com/RGB-WG/rgb-std" --branch "v0.8" \
+RUN cargo install rgb-std --version "${VER_STD}" \
         --debug --locked --all-features --root "${BUILDER_DIR}"
 
 

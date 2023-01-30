@@ -4,6 +4,7 @@
 CLOSING_METHOD="opret1st"
 
 # wallet and network
+BDK_CLI_VER="0.26.0"
 DERIVE_PATH="m/86'/1'/0'/0"
 DESC_TYPE="wpkh"
 ELECTRUM="localhost:50001"
@@ -75,7 +76,7 @@ check_dirs() {
                echo "please remove it and try again (e.g. 'sudo rm -r $data_dir')"
                _die "cannot continue"
            fi
-           echo "exisrting data directory \"$data_dir\" found, removing"
+           echo "existing data directory \"$data_dir\" found, removing"
            rm -r $data_dir
        fi
        mkdir -p "$data_dir"
@@ -85,13 +86,13 @@ check_dirs() {
 install_bdk_cli() {
     local bdk_cli_path="bdk-cli"
     if [ -d "${bdk_cli_path}" ] && [ -x "${BDKI}" ]; then
-        if [ "$(${BDKI} -V)" = "bdk-cli 0.6.0" ]; then
+        if [ "$(${BDKI} -V)" = "bdk-cli $BDK_CLI_VER" ]; then
             _log "bdk-cli already installed"
             return
         fi
     fi
     _log "installing bdk-cli to ${bdk_cli_path}"
-    cargo install bdk-cli --version "0.6.0" --root "./bdk-cli" --features electrum
+    cargo install bdk-cli --version $BDK_CLI_VER --root "./bdk-cli" --features electrum
 }
 
 cleanup() {
@@ -408,7 +409,7 @@ transfer_asset() {
     _log "analyzing bundled psbt"
     _trace "${send_std[@]}" psbt analyze "$psbt_bundle"
 
-    ## finalize consignment
+    ## finalize consignment and psbt
     _subtit "finalizing consignment"
     local cons_final="consignment_final_${num}.rgbc"
     _trace "${send_cli[@]}" transfer finalize \

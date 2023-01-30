@@ -2,14 +2,14 @@ RGB Sandbox
 ===
 
 ## Introduction
-This is an RGB sandbox and demo based on RGB version 0.8.x.
-It is based on the previous rgb-node 0.4.x demo and the original rgb-node demo
-by [St333p] (version 0.1) and [grunch]'s [guide].
+This is an RGB sandbox and demo based on RGB version 0.9.x.
+It is based on the original rgb-node demo by [St333p] (version 0.1), [grunch]'s
+[guide] and previous rgb-node sandbox versions.
 
-Please note that later RGB versions will contain braking changes so might be
-incompatible with this demo.
+Please note that later RGB versions (0.10) will contain braking changes and
+will be incompatible with this demo.
 
-It runs in Docker using Rust 1.66 on Debian bullseye. The underlying Bitcoin
+It runs in Docker using Rust 1.67 on Debian bullseye. The underlying Bitcoin
 network is `regtest`.
 
 The used RGB components are:
@@ -52,6 +52,10 @@ The automated demo does not require any other setup steps.
 The manual version requires handling of data directories and services, see the
 [dedicated section](#data-and-service-management) for instructions.
 
+Both versions will leave bdk-cli installed, in the `bdk-cli` directory under
+the project root. The directory can be safely removed to start from scratch,
+doing so will just require bdk-cli to be re-installed on the next run.
+
 ### Requirements
 - [git]
 - [docker]
@@ -80,8 +84,8 @@ second recipient back to the issuer.
 On exit, the script will stop the services and remove the data directories.
 
 For more verbose output during the automated demo, add the `-v` option (`bash
-demo.sh -v`), which shows the commands being run on nodes and output from
-additional commands.
+demo.sh -v`), which shows the commands being run on nodes and additional
+information (including output from additional inspection commands).
 
 The script by default uses "OP_RETURN" as closing method and "wpkh"
 descriptors. "Tapret" closing method and taproot descriptors can be selected
@@ -91,7 +95,7 @@ bash demo.sh "tapret1st" "tr"
 ```
 
 ## Manual demo recording
-Following the manual demo and rxecuting all the required steps is a rather long
+Following the manual demo and executing all the required steps is a rather long
 and error-prone process.
 
 To ease the task of following the steps, a recording of the manual demo
@@ -139,8 +143,11 @@ docker-compose logs rgb-node-0
 Once finished and in order to clean up containers and data to start the demo
 from scratch, run:
 ```sh
-docker-compose down               # stop and remove running containers
-rm -fr data{0,1,2,core,index}     # remove service data directories
+# stop and remove running containers
+docker-compose down
+
+# remove service data directories
+rm -fr data{0,1,2,core,index}
 ```
 
 ### Premise
@@ -159,7 +166,7 @@ and transfer, we will need:
 RGB wallets will be handled with BDK. We install its CLI to the `bdk-cli`
 directory inside the demo's directory:
 ```sh
-cargo install bdk-cli --version "0.6.0" --root "./bdk-cli" --features electrum
+cargo install bdk-cli --version "0.26.0" --root "./bdk-cli" --features electrum
 ```
 
 ### Demo
@@ -320,33 +327,30 @@ rgb0-rgb20 issue -m $CLOSING_METHOD USDT "USD Tether" 1000@$outpoint_issue
 # Contract ID: rgb1znn5xh7g33u4cseg27uz5mzma58rr98tlpfxp75l0e783my8hx0qcx0jsj
 #
 # Contract YAML:
-# ---
 # schema_id: rgbsh18kp34t5nn5zu4hz6g7lqjdjskw8aaf84ecdntrtrdvzs7gn3rnzskscfq8
-# chain:
-#   regtest: 0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206
+# chain: !regtest: 0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206
 # metadata:
 #   0:
-#     - AsciiString: USDT
+#   - !AsciiString: USDT
 #   1:
-#     - AsciiString: USD Tether
+#   - !AsciiString: USD Tether
 #   3:
-#     - U8: 8
+#   - !U8: 8
 #   4:
-#     - I64: 1673358389
+#   - !I64: 1673358389
 #   160:
-#     - U64: 1000
+#   - !U64: 1000
 # owned_rights:
-#   161:
-#     value:
-#       - revealed:
-#           seal:
-#             method: OpretFirst
-#             txid: bf08fd8fd48aa7e1f53185124e0d2f0082c057c6c638f03bea92527e5be3e8cd
-#             vout: 1
-#             blinding: 15804704581054809064
-#           state:
-#             value: 1000
-#             blinding: "0000000000000000000000000000000000000000000000000000000000000001"
+#   161: !value
+#   - !revealed:
+#     seal:
+#       method: OpretFirst
+#       txid: bf08fd8fd48aa7e1f53185124e0d2f0082c057c6c638f03bea92527e5be3e8cd
+#       vout: 1
+#       blinding: 15804704581054809064
+#     state:
+#       value: 1000
+#       blinding: "0000000000000000000000000000000000000000000000000000000000000001"
 # public_rights: []
 #
 # Contract JSON:
@@ -447,7 +451,7 @@ bdk -n regtest wallet -w issuer -d "$DESC_TYPE($xpub_der_0)" create_tx \
 #   },
 #   "psbt": "cHNidP8BAFIBAAAAAc3o41t+UpLqO/A4xsZXwIIALw1OEoUx9eGnitSP/Qi/AQAAAAD9////Adq/6wsAAAAAFgAUpEy7je7Hjage2diE133wXbWl2aNpAAAAAAEA3gIAAAAAAQGidTUaFjDK9wgFBj6zYZm7t5Jdlakw3EnmU0eNsTDLPgAAAAAA/v///wL8JBoeAQAAABYAFOoMGDGc+P0anr4szrq8JS95HFe7AMLrCwAAAAAWABSBPwaJ9gAn3HsspBWoUv9HnQPe/wJHMEQCIADfi5GJ321H2aY7AOndk4QWzmvxO5ZFjih2wISMWTYUAiAIerdX0VIDXKQvUZS9DdTREn+XIl3hV96FbCw3C3nFEgEhA2Vm3vOJZoCxv0hEJi+8FFSGUL3eIaqo+kIvT6niczrRZwAAAAEBHwDC6wsAAAAAFgAUgT8GifYAJ9x7LKQVqFL/R50D3v8iBgOSTtLuaFetpfJt6+GgeoBPKk+KNXqeCKbi7Eb+X7dwTRivoGKEVgAAgAEAAIAAAACAAAAAAAEAAAAAIgICfHFDbv+YAW1oNvNJlqB54CrDEa6rFwrKOr1irWg+eS4Yr6BihFYAAIABAACAAAAAgAAAAAADAAAAAA=="
 # }
-echo "cHNidP8B..." | base64 -d > tx.psbt
+echo "cHNidP8B..." | base64 -d > $PSBT
 
 cp $PSBT data0/
 ```
@@ -488,24 +492,23 @@ rgb0-rgb20 transfer --utxo $outpoint_issue \
 # parent_owned_rights:
 #   9eb987ec787c7e9ffa6052f8eb94310eed5b6c2ab85728435c798cc85f43e714:
 #     161:
-#       - 0
+#     - 0
 # owned_rights:
-#   161:
-#     value:
-#       - revealed:
-#           seal:
-#             method: OpretFirst
-#             txid: d67e0e08728603e2d8ad077bb1f14b28316e2f6597c277962d2813327a95ed2f
-#             vout: 1
-#             blinding: 1888680781681793083
-#           state:
-#             value: 900
-#             blinding: 7262cf789dbf09dd40f8f5571b106fbdaab825a3e45b043d9e8340cb8179008b
-#       - confidential_seal:
-#           seal: txob10xwkaqrqsyn7gv6guz8myfxzlh9dha6f6yfgjdf0nwaspvrk9ghss5npr8
-#           state:
-#             value: 100
-#             blinding: 8d9d30876240f622bf070aa8e4ef90410ff6b742caed9bfe214f1dc14ebd40b7
+#   161: !value
+#   - !revealed:
+#     seal:
+#       method: OpretFirst
+#       txid: d67e0e08728603e2d8ad077bb1f14b28316e2f6597c277962d2813327a95ed2f
+#       vout: 1
+#       blinding: 1888680781681793083
+#     state:
+#       value: 900
+#       blinding: 7262cf789dbf09dd40f8f5571b106fbdaab825a3e45b043d9e8340cb8179008b
+#   - !confidential_seal:
+#     seal: txob10xwkaqrqsyn7gv6guz8myfxzlh9dha6f6yfgjdf0nwaspvrk9ghss5npr8
+#     state:
+#       value: 100
+#       blinding: 8d9d30876240f622bf070aa8e4ef90410ff6b742caed9bfe214f1dc14ebd40b7
 # parent_public_rights: {}
 # public_rights: []
 #
@@ -540,8 +543,7 @@ rgb0-std psbt analyze $PSBT
 
 Finalize the consignment:
 ```sh
-rgb0-cli transfer finalize \
-    --endseal $blinded_utxo $PSBT $CONSIGNMENT
+rgb0-cli transfer finalize --endseal $blinded_utxo $PSBT $CONSIGNMENT
 # example output:
 # Finalizing state transfer...
 # Task forwarded to bucket daemon
@@ -580,7 +582,7 @@ At this point the recipient approves the transfer (for the demo let's just
 assume it happened, in a real-world scenario an [RGB proxy] can be used).
 
 #### Sender: sign and broadcast transaction
-With rhe receiver's approval of the transfer, the transaction can be signed and
+With the receiver's approval of the transfer, the transaction can be signed and
 broadcast:
 ```sh
 bdk -n regtest wallet -w issuer -d "$DESC_TYPE($xprv_der_0)" \

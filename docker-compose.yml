@@ -3,7 +3,7 @@ version: '3.2'
 services:
   rgb-node-0:
     container_name: rgb-node-0
-    image: rgb-node:0.8
+    image: rgb-node:0.9
     build: .
     environment:
       MYUID: 1000
@@ -14,7 +14,7 @@ services:
     working_dir: /var/lib/rgb
   rgb-node-1:
     container_name: rgb-node-1
-    image: rgb-node:0.8
+    image: rgb-node:0.9
     build: .
     environment:
       MYUID: 1000
@@ -25,7 +25,7 @@ services:
     working_dir: /var/lib/rgb
   rgb-node-2:
     container_name: rgb-node-2
-    image: rgb-node:0.8
+    image: rgb-node:0.9
     build: .
     environment:
       MYUID: 1000
@@ -36,7 +36,7 @@ services:
     working_dir: /var/lib/rgb
   bitcoind:
     container_name: rgb-bitcoind
-    image: registry.gitlab.com/hashbeam/docker/bitcoind:23.0
+    image: registry.gitlab.com/hashbeam/docker/bitcoind:24.0
     command: "-fallbackfee=0.0002"
     environment:
       MYUID: 1000
