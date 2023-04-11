@@ -1,0 +1,19 @@
+interface: RGB20
+
+globals:
+  spec:
+    naming:
+      ticker: USDT
+      name: USD Tether
+      details: ~
+    precision: 0
+  data:
+    terms: demo RGB20 asset
+    media: ~
+  issuedSupply: issued_supply
+  created: created_timestamp
+
+assignments:
+  assetOwner:
+    seal: closing_method:txid:vout
+    amount: issued_supply

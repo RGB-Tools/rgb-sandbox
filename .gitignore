@@ -1,0 +1,16 @@
+# crate install directories
+bdk-cli/
+rgb-contracts/
+
+# service and client data directories
+data[0-2]/
+datacore/
+dataindex/
+
+# contract generated files
+contracts/*.rgb
+contracts/*.yaml
+!contracts/*.template
+
+# consignment inspect files
+consignment_*.rgb.inspect

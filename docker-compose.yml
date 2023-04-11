@@ -1,42 +1,8 @@
 version: '3.2'
 
 services:
-  rgb-node-0:
-    container_name: rgb-node-0
-    image: rgb-node:0.9
-    build: .
-    environment:
-      MYUID: 1000
-      MYGID: 1000
-      RGB_ELECTRUM_SERVER: electrs:50001
-    volumes:
-      - ./data0:/var/lib/rgb
-    working_dir: /var/lib/rgb
-  rgb-node-1:
-    container_name: rgb-node-1
-    image: rgb-node:0.9
-    build: .
-    environment:
-      MYUID: 1000
-      MYGID: 1000
-      RGB_ELECTRUM_SERVER: electrs:50001
-    volumes:
-      - ./data1:/var/lib/rgb
-    working_dir: /var/lib/rgb
-  rgb-node-2:
-    container_name: rgb-node-2
-    image: rgb-node:0.9
-    build: .
-    environment:
-      MYUID: 1000
-      MYGID: 1000
-      RGB_ELECTRUM_SERVER: electrs:50001
-    volumes:
-      - ./data2:/var/lib/rgb
-    working_dir: /var/lib/rgb
   bitcoind:
-    container_name: rgb-bitcoind
-    image: registry.gitlab.com/hashbeam/docker/bitcoind:24.0
+    image: registry.gitlab.com/hashbeam/docker/bitcoind:25.0
     command: "-fallbackfee=0.0002"
     environment:
       MYUID: 1000
@@ -44,8 +10,7 @@ services:
     volumes:
       - ./datacore:/srv/app/.bitcoin
   electrs:
-    container_name: rgb-electrs
-    image: registry.gitlab.com/hashbeam/docker/electrs:0.9.9
+    image: registry.gitlab.com/hashbeam/docker/electrs:0.9.14
     environment:
       MYUID: 1000
       MYGID: 1000
