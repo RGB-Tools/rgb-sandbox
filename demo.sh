@@ -55,17 +55,17 @@ _wait_user() {
 
 # shellcheck disable=2034
 set_cmd_aliases() {
-    BCLI=("docker-compose" "exec" "-T" "-u" "blits" "bitcoind" "bitcoin-cli" "-$NETWORK")
+    BCLI=("docker" "compose" "exec" "-T" "-u" "blits" "bitcoind" "bitcoin-cli" "-$NETWORK")
     BDKI="bdk-cli/bin/bdk-cli"
-    CLI0=("docker-compose" "exec" "-T" "-u" "rgb" "rgb-node-0" "rgb-cli" "-n" "$NETWORK")
-    CLI1=("docker-compose" "exec" "-T" "-u" "rgb" "rgb-node-1" "rgb-cli" "-n" "$NETWORK")
-    CLI2=("docker-compose" "exec" "-T" "-u" "rgb" "rgb-node-2" "rgb-cli" "-n" "$NETWORK")
-    R200=("docker-compose" "exec" "-T" "-u" "rgb" "rgb-node-0" "rgb20" "-n" "$NETWORK")
-    R201=("docker-compose" "exec" "-T" "-u" "rgb" "rgb-node-1" "rgb20" "-n" "$NETWORK")
-    R202=("docker-compose" "exec" "-T" "-u" "rgb" "rgb-node-2" "rgb20" "-n" "$NETWORK")
-    STD0=("docker-compose" "exec" "-T" "-u" "rgb" "rgb-node-0" "rgb")
-    STD1=("docker-compose" "exec" "-T" "-u" "rgb" "rgb-node-1" "rgb")
-    STD2=("docker-compose" "exec" "-T" "-u" "rgb" "rgb-node-2" "rgb")
+    CLI0=("docker" "compose" "exec" "-T" "-u" "rgb" "rgb-node-0" "rgb-cli" "-n" "$NETWORK")
+    CLI1=("docker" "compose" "exec" "-T" "-u" "rgb" "rgb-node-1" "rgb-cli" "-n" "$NETWORK")
+    CLI2=("docker" "compose" "exec" "-T" "-u" "rgb" "rgb-node-2" "rgb-cli" "-n" "$NETWORK")
+    R200=("docker" "compose" "exec" "-T" "-u" "rgb" "rgb-node-0" "rgb20" "-n" "$NETWORK")
+    R201=("docker" "compose" "exec" "-T" "-u" "rgb" "rgb-node-1" "rgb20" "-n" "$NETWORK")
+    R202=("docker" "compose" "exec" "-T" "-u" "rgb" "rgb-node-2" "rgb20" "-n" "$NETWORK")
+    STD0=("docker" "compose" "exec" "-T" "-u" "rgb" "rgb-node-0" "rgb")
+    STD1=("docker" "compose" "exec" "-T" "-u" "rgb" "rgb-node-1" "rgb")
+    STD2=("docker" "compose" "exec" "-T" "-u" "rgb" "rgb-node-2" "rgb")
 }
 
 check_dirs() {
@@ -96,13 +96,13 @@ install_bdk_cli() {
 }
 
 cleanup() {
-    docker-compose down
+    docker compose down
     rm -rf data{0,1,2,core,index}
 }
 
 start_services() {
-    docker-compose down
-    docker-compose up -d
+    docker compose down
+    docker compose up -d
 }
 
 prepare_wallets() {
