@@ -58,6 +58,7 @@ doing so will just require bdk-cli to be re-installed on the next run.
 
 ### Requirements
 - [git]
+- [cargo]
 - [docker]
 - [docker-compose]
 
@@ -685,6 +686,7 @@ receiver's allocation is not visible in the contract state on the sender side.
 [RGB proxy]: https://github.com/grunch/rgb-proxy-server
 [St333p]: https://github.com/St333p
 [Storm]: https://github.com/Storm-WG/storm-spec
+[cargo]: https://github.com/rust-lang/cargo
 [docker-compose]: https://docs.docker.com/compose/install/
 [docker]: https://docs.docker.com/get-docker/
 [git]: https://git-scm.com/downloads

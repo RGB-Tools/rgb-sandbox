@@ -68,6 +68,18 @@ set_cmd_aliases() {
     STD2=("docker" "compose" "exec" "-T" "-u" "rgb" "rgb-node-2" "rgb")
 }
 
+check_tools() {
+    local required_tools="base64 cargo cut docker grep head jq tail"
+    for tool in $required_tools; do
+        if ! which "$tool" >/dev/null; then
+            _die "could not find reruired tool \"$tool\", please install it and try again"
+        fi
+    done
+    if ! docker compose >/dev/null; then
+        _die "could not call docker compose (hint: install docker compose plugin)"
+    fi
+}
+
 check_dirs() {
     for data_dir in data0 data1 data2 datacore dataindex; do
        if [ -d "$data_dir" ]; then
@@ -102,6 +114,7 @@ cleanup() {
 
 start_services() {
     docker compose down
+    docker compose build rgb-node-0
     docker compose up -d
 }
 
@@ -507,6 +520,7 @@ while [ -n "$1" ]; do
 done
 
 # initial setup
+check_tools
 set_cmd_aliases
 _tit "installing bdk-cli"
 install_bdk_cli
