@@ -4,7 +4,7 @@
 CLOSING_METHOD="opret1st"
 CONTRACT_DIR="contracts"
 IFACE="RGB20"
-RGB_CONTRACTS_VER="0.10.0-rc.5"
+RGB_CONTRACTS_VER="0.10.2"
 TRANSFER_NUM=0
 
 # wallet and network
