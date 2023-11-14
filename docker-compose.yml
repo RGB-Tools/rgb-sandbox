@@ -1,22 +1,29 @@
-version: '3.2'
-
 services:
   bitcoind:
-    image: registry.gitlab.com/hashbeam/docker/bitcoind:25.0
+    profiles: [electrum]
+    image: registry.gitlab.com/hashbeam/docker/bitcoind:27.1
     command: "-fallbackfee=0.0002"
-    environment:
-      MYUID: 1000
-      MYGID: 1000
     volumes:
       - ./datacore:/srv/app/.bitcoin
   electrs:
-    image: registry.gitlab.com/hashbeam/docker/electrs:0.9.14
-    environment:
-      MYUID: 1000
-      MYGID: 1000
-    volumes:
-      - ./dataindex:/srv/app/db
+    profiles: [electrum]
+    image: registry.gitlab.com/hashbeam/docker/electrs:0.10.0
     depends_on:
       - bitcoind
     ports:
       - 50001:50001
+    volumes:
+      - ./dataelectrs:/srv/app/db
+  esplora:
+    profiles: [esplora]
+    image: blockstream/esplora:956c74f42eb6ad803d8aedc272ba83d3aa6dcf5c
+    command: /srv/explorer/run.sh bitcoin-regtest explorer
+    environment:
+      DEBUG: verbose
+      NO_PRECACHE: 1
+      NO_ADDRESS_SEARCH: 1
+      NO_REGTEST_MINING: 1
+    ports:
+      - 8094:80
+    volumes:
+      - ./dataesplora:/data
