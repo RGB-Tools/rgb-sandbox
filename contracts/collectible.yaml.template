@@ -1,13 +1,11 @@
 schema: schema_id
 
 globals:
-  spec:
-    ticker: USDT
-    name: USD Tether
-    details: ~
-    precision: 0
+  name: Other asset
+  details: Asset description
+  precision: 0
   terms:
-    text: demo NIA asset
+    text: demo CFA asset
     media: ~
   issuedSupply: issued_supply
 
