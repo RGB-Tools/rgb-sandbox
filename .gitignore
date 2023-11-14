@@ -1,11 +1,16 @@
 # crate install directories
-bdk-cli/
-rgb-contracts/
+descriptor-wallet/
+rgb-wallet/
 
 # service and client data directories
 data[0-2]/
 datacore/
-dataindex/
+dataelectrs/
+dataesplora/
+logs/
+
+# wallets
+wallets/
 
 # contract generated files
 contracts/*.rgb
@@ -13,4 +18,4 @@ contracts/*.yaml
 !contracts/*.template
 
 # consignment inspect files
-consignment_*.rgb.inspect
+consignment_*.rgb.yaml

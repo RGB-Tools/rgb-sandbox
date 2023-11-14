@@ -2,13 +2,12 @@ RGB Sandbox
 ===
 
 ## Introduction
-This is an RGB sandbox and demo based on RGB version 0.10.
-It is based on the original rgb-node demo by [St333p] (version 0.1), [grunch]'s
-[guide] and previous rgb-node sandbox versions.
+This is an RGB sandbox and demo based on RGB version 0.11 beta 5.
 
 The underlying Bitcoin network is `regtest`.
 
-RGB is operated via the [rgb-contracts] crate. [BDK] is used for walleting.
+RGB is operated via the [rgb-wallet] crate. [descriptor-wallet] is used for
+walleting.
 
 This sandbox can help explore RGB features in a self-contained environment
 or can be used as a demo of the main RGB functionalities for fungible assets.
@@ -27,21 +26,19 @@ allow following the links between the steps. Actual output when executing the
 procedure will be different each time.
 
 ## Setup
-Clone the repository, including (shallow) submodules:
+Clone the repository, including (shallow) submodules and change to the
+newly-created directory:
 ```sh
 git clone https://github.com/RGB-Tools/rgb-sandbox --recurse-submodules --shallow-submodules
+cd rgb-sandbox
 ```
-
-The default setup assumes the user and group IDs are `1000`. If that's not the
-case, the `MYUID` and `MYGID` environment variables  in the
-`docker-compose.yml` file need to be updated accordingly.
 
 The automated demo does not require any other setup steps.
 
 The manual version requires handling of data directories and services, see the
 [dedicated section](#data-and-service-management) for instructions.
 
-Both versions will leave `bdk-cli` and `rgb-contracts` installed, in the
+Both versions will leave `descriptor-wallet` and `rgb-wallet` installed, in the
 respective directories under the project root. These directories can be safely
 removed to start from scratch, doing so will just require the rust crates to be
 re-installed on the next run.
@@ -55,8 +52,11 @@ re-installed on the next run.
 
 ## Sandbox exploration
 The services started with docker compose simulate a small network with a
-bitcoin node and an explorer. These can be used to support testing and
+bitcoin node and an indexer. These can be used to support testing and
 exploring the basic functionality of an RGB ecosystem.
+
+The indexer can either be electrum or esplora. The default for the automated
+demo and the one used in the manual demo is electrum.
 
 Check out the manual demo below to get started with example commands. Refer to
 each command's help documentation for additional information.
@@ -67,8 +67,8 @@ To check out the automated demo, run:
 bash demo.sh
 ```
 
-The automated script will install the required rust crates, create empty
-service data directories, start the required services, prepare the wallets,
+The automated script will install the required rust crates, cleanup and create
+empty data directories, start the required services, prepare the wallets,
 issue assets, execute a series of asset transfers, then stop the services and
 remove the data directories.
 
@@ -76,18 +76,19 @@ For more verbose output during the automated demo, add the `-v` option (`bash
 demo.sh -v`), which shows the commands being run and additional
 information (including output from additional inspection commands).
 
-## Manual demo recording
+To use esplora instead of electrum as indexer, add the `--esplora` option.
 
-Following the manual demo and executing all the required steps is a rather long
-and error-prone process.
+The automated demo also supports scenarios that can be selected via the `-s`
+option. The default scenario is `0`, which has been described above using the
+`opret1st` closing method for all operations, but `1` is also available (`bash
+demo.sh -s 1`) to run the same operations using the `tapret1st` closing method.
 
-To ease the task of following the steps, a recording of the manual demo
-execution is available:
-[![demo](https://asciinema.org/a/603883.svg)](https://asciinema.org/a/603883?autoplay=1)
+Multiple scenarios can also be executed in a single run with the `scenarios.sh`
+script (`bash scenarios.sh 0 1`). This script will run all the specified
+scenarios, save the logs of each scenario in a separate file under the `logs`
+directory and give a final report on which scenarios succeeded or failed.
 
 ## Manual demo
-
-Note: this has not yet been updated to the 0.10 version.
 
 The manual demo shows how to issue an asset and transfer some to a recipient.
 
@@ -107,13 +108,10 @@ the value should instead be replaced with the actual output received while
 following the steps.
 
 ### Data and service management
-Create data directories and start the required services in Docker containers:
+Start the required services in Docker containers:
 ```sh
-# create data directories
-mkdir data{0,1,core,index}
-
-# start services (first time docker images need to be downloaded...)
-docker compose up -d
+# missing docker images will be downloaded
+docker compose --profile electrum up -d
 ```
 
 To get a list of the running services you can run:
@@ -126,38 +124,45 @@ To get their respective logs you can run, for instance:
 docker compose logs bitcoind
 ```
 
-Once finished and in order to clean up containers and data to start the demo
+Once finished, in order to clean up services and data to start the demo
 from scratch, run:
 ```sh
-# stop services and remove containers
-docker compose down
+# stop services, remove containers and volumes
+docker compose --profile electrum down -v
 
-# remove data directories
-rm -fr data{0,1,core,index}
+# remove data directories and generated files
+rm -fr data{0,1} wallets consignment.yaml contracts/usdt.yaml
+```
+
+To also remove installed crates run:
+```sh
+rm -r descriptor-wallet rgb-wallet
 ```
 
 ### Premise
-The rgb-contracts CLI tool does not handle wallet-related functionality, it
-performs RGB-specific tasks over data that is provided by an external wallet,
-such as BDK. In particular, in order to demonstrate a basic workflow with
-issuance and transfer, from the bitcoin wallets we will need:
+The rgb-wallet CLI tool does not handle bitcoin-related functionality, it
+performs RGB-specific tasks over data that is provided by an external bitcoin
+wallet, such as descriptor-wallet. In particular, in order to demonstrate a
+basic workflow with issuance and transfer, from the bitcoin wallets we will
+need:
+TODO
 - an *outpoint_issue* to which the issuer will allocate the new asset
 - an *outpoint_receive* where the recipient will receive the asset transfer
 - an *addr_change* where the sender will receive the bitcoin and asset change
 - a partially signed bitcoin transaction (PSBT) to anchor the transfer
 
-### bdk-cli installation
-Wallets will be handled with BDK. We install its CLI to the `bdk-cli` directory
-inside the project directory:
+### descriptor-wallet installation
+Bitcoin walleting will be handled with descriptor-wallet. We install its CLI to
+the `descriptor-wallet` directory inside the project directory:
 ```sh
-cargo install bdk-cli --version "0.27.1" --root "./bdk-cli" --features electrum --locked
+cargo install descriptor-wallet --version 0.10.2 --root ./descriptor-wallet --all-features --debug
 ```
 
-### rgb-contracts installation
-RGB functionality will be handled with `rgb-contracts`. We install its CLI to
-the `rgb-contracts` directory inside the project directory:
+### rgb-wallet installation
+RGB functionality will be handled with `rgb-wallet`. We install its CLI to the
+`rgb-wallet` directory inside the project directory:
 ```sh
-cargo install rgb-contracts --version "0.10.0-rc.5" --root "./rgb-contracts" --all-features --locked
+cargo install rgb-wallet --version 0.11.0-beta.5 --root ./rgb-wallet
 ```
 
 ### Demo
@@ -165,9 +170,10 @@ cargo install rgb-contracts --version "0.10.0-rc.5" --root "./rgb-contracts" --a
 We setup aliases to ease CLI calls:
 ```sh
 alias bcli="docker compose exec -u blits bitcoind bitcoin-cli -regtest"
-alias bdk="bdk-cli/bin/bdk-cli"
-alias rgb0="rgb-contracts/bin/rgb -n regtest -d data0"
-alias rgb1="rgb-contracts/bin/rgb -n regtest -d data1"
+alias btccold="descriptor-wallet/bin/btc-cold"
+alias btchot="descriptor-wallet/bin/btc-hot"
+alias rgb0="rgb-wallet/bin/rgb -n regtest --electrum localhost:50001 -d data0 -w issuer"
+alias rgb1="rgb-wallet/bin/rgb -n regtest --electrum localhost:50001 -d data1 -w rcpt1"
 ```
 
 We set some environment variables:
@@ -180,152 +186,226 @@ ELECTRUM_DOCKER="electrs:50001"
 CONSIGNMENT="consignment.rgb"
 PSBT="tx.psbt"
 IFACE="RGB20"
+INTERFACE_DIR="rgb-schemata/interfaces"
+SCHEMATA_DIR="rgb-schemata/schemata"
+WALLET_PATH="wallets"
 ```
 
-We prepare the Bitcoin wallets using Bitcoin Core and BDK:
+We prepare the Bitcoin core wallet:
 ```sh
 # Bitcoin Core wallet
 bcli createwallet miner
 bcli -generate 103
-
-# if there are any bdk wallets from previous runs, they need to be removed
-rm -fr ~/.bdk-bitcoin/{issuer,receiver}
-
-# issuer/sender BDK wallet
-bdk key generate
-# example output:
-# {
-#   "fingerprint": "a83fc09c",
-#   "mnemonic": "frozen nest frown retire wolf clinic tent know culture mad season whip impulse adjust hand change stomach meat wreck brick foam broken start reform",
-#   "xprv": "tprv8ZgxMBicQKsPey8NKMEpFemmWPMtYb4znAKtWVKr48Q1uDvemxT3RRW5m6NpToMoiVYSwVS16xKkeMueVhxnUsE7X7TpgzzxLSg7jBS1ma2"
-# }
-
-xprv_0="tprv8Zgx..."
-
-bdk key derive -p "$DERIVE_PATH" -x "$xprv_0"
-# example output:
-# {
-#   "xprv": "[a83fc09c/86'/1'/0'/9]tprv8iqTQS7ksLhSaJNCfach4uTD6NJtoypuYnSEM5no1Km6YkCt8ciaYxtNL8pR68KU8a7GDSMhRTsrjaH7QR5bsx2e4287tjBa7SdFGyStGPR/*",
-#   "xpub": "[a83fc09c/86'/1'/0'/9]tpubDFXVYrA11iP7TmPzZEHHUK7KfPppyK1p8631dbq6RbZVPETem1YAjTWEWK6xkwQpJpcvcX6vGZ8xoK6yLE7CcRnm4514mhHGfJ1UNLHVxXG/*"
-# }
-
-xprv_der_0="[a83fc09c/86'/1'/0'/9]tprv8iqT..."
-xpub_der_0="[a83fc09c/86'/1'/0'/9]tpubDFXV..."
-
-# receiver BDK wallet
-bdk key generate
-# example output:
-# {
-#   "fingerprint": "2976d70f",
-#   "mnemonic": "kick detail chronic crime unusual nut legal viable limb elegant always tent envelope betray comfort human famous boat garment shallow hunt brass mind bomb",
-#   "xprv": "tprv8ZgxMBicQKsPdorFhbmRFNu9tWMy2xxLLRYvxE5bpSvhymTpUmHdgaZiXN3ndATpSRTyyaxpnve3xYwhdoUhW1DwCW85MW9KwuJzV2xX6gV"
-# }
-
-xprv_1="tprv8Zgx..."
-
-bdk key derive -p "$DERIVE_PATH" -x "$xprv_1"
-# example output:
-# {
-#   "xprv": "[2976d70f/86'/1'/0'/9]tprv8j496FRBryAmENLx7h66pKcgtet1o7fJN5yv4jVvZ8cpcDVTWajqqmyNFmrv9buLR7UkhqFKuvshcZQxdzfCgN1Qg1m5UcHLA5PRumTBvv7/*",
-#   "xpub": "[2976d70f/86'/1'/0'/9]tpubDFkBEfTS1LrS7qNk1LkhDjGoTgPwxSrCwPahMFYDyQRDShkE8yZS2GbERvepZ9mNAK5R4ejNmDoFFv1EHZ8QgJwqkXFmn6C1spUa6VUwr1x/*"
-# }
-
-xprv_der_1="[2976d70f/86'/1'/0'/9]tprv8j49..."
-xpub_der_1="[2976d70f/86'/1'/0'/9]tpubDFkB..."
-
-# generate addresses
-bdk -n regtest wallet -w issuer -d "$DESC_TYPE($xpub_der_0)" get_new_address
-# example output:
-# {
-#   "address": "bcrt1q67z8nmswgvs38n64yl80plsejcs6vt867c2y22"
-# }
-
-addr_issue="bcrt1q67..."
-
-bdk -n regtest wallet -w issuer -d "$DESC_TYPE($xpub_der_0)" get_new_address
-# example output:
-# {
-#   "address": "bcrt1qr36fkwcvaqkg4v5e2hdh9x4vrxhqysf6wk4hcn"
-# }
-
-addr_change="bcrt1qr3..."
-
-bdk -n regtest wallet -w receiver -d "$DESC_TYPE($xpub_der_1)" get_new_address
-# example output:
-# {
-#   "address": "bcrt1q87w6s0anaugzksgmq9adwcgw9wyt6ekj7u8qc6"
-# }
-
-addr_receive="bcrt1q87..."
-
-# fund wallets
-bcli -rpcwallet=miner sendtoaddress "$addr_issue" 1
-bcli -rpcwallet=miner sendtoaddress "$addr_receive" 1
-bcli -rpcwallet=miner -generate 1
-
-# sync wallets
-bdk -n regtest wallet -w issuer -d "$DESC_TYPE($xpub_der_0)" -s "$ELECTRUM" sync
-bdk -n regtest wallet -w receiver -d "$DESC_TYPE($xpub_der_1)" -s "$ELECTRUM" sync
-
-# list wallet unspents and gather the outpoints
-bdk -n regtest wallet -w issuer -d "$DESC_TYPE($xpub_der_0)" list_unspent
-# example output:
-# [
-#   {
-#     "is_spent": false,
-#     "keychain": "External",
-#     "outpoint": "6f6343401fc57c3f6a30043c61023e62311ee2b5d321823843af9cbcbfb2ac7e:1",
-#     "txout": {
-#       "script_pubkey": "0014d78479ee0e432113cf5527cef0fe199621a62cfa",
-#       "value": 100000000
-#     }
-#   }
-# ]
-
-outpoint_issue="6f6...c7e:1"
-
-bdk -n regtest wallet -w receiver -d "$DESC_TYPE($xpub_der_1)" list_unspent
-# example output:
-# [
-#   {
-#     "is_spent": false,
-#     "keychain": "External",
-#     "outpoint": "bbc274a1f145552a6f22cab912c9b1903fb30333128b3b0f22212f2aa87772e2:0",
-#     "txout": {
-#       "script_pubkey": "00143f9da83fb3ef102b411b017ad7610e2b88bd66d2",
-#       "value": 100000000
-#     }
-#   }
-# ]
-
-outpoint_receive="bbc...2e2:0"
 ```
 
-We setup the RGB clients, importing schema and interface implementation:
+If there are left-over wallets from previous runs, they need to be removed:
 ```sh
-# 1st client
-rgb0 import rgb-schemata/schemata/NonInflatableAssets.rgb
-# example output:
-# Stock file not found, creating default stock
-# Wallet file not found, creating new wallet list
-# Schema urn:lnp-bp:sc:BEiLYE-am9WhTW1-oK8cpvw4-FEMtzMrf-mKocuGZn-qWK6YF#ginger-parking-nirvana imported to the stash
+rm -fr $WALLET_PATH
+```
 
-rgb0 import rgb-schemata/schemata/NonInflatableAssets-RGB20.rgb
-# example output:
-# Implementation urn:lnp-bp:im:9EUGHC-wpuiyrQE-NdPBVyiv-VX4sVRBs-9yKfteug-HtqnGb#titanic-easy-citizen of interface urn:lnp-bp:if:48hc4i-m9JRcYQA-uUSzwFCK-VNEa9eZf-nhepU8QJ-pqosXS#laptop-domingo-cool for schema urn:lnp-bp:sc:BEiLYE-am9WhTW1-oK8cpvw4-FEMtzMrf-mKocuGZn-qWK6YF#ginger-parking-nirvana imported to the stash
+We create the directory to hold bitcoin wallet files:
+```sh
+mkdir $WALLET_PATH
+```
 
-# 2nd client (same output as 1st client)
-rgb1 import rgb-schemata/schemata/NonInflatableAssets.rgb
-rgb1 import rgb-schemata/schemata/NonInflatableAssets-RGB20.rgb
+We prepare the issuer/sender and receiver bitcoin wallets:
+```sh
+# issuer/sender wallet
+btchot seed -p '' "$WALLET_PATH/0.seed"
+# example output:
+# Master key:
+#   - fingerprint:   44ff6cd2
+#   - id:            44ff6cd2846fd0e42cdb532ebc4cb97aed56dd4b
+#   - xpub mainnet:  xpub661MyMwAqRbcGLre12hSzG9JkjehrjU6XrpHRqRiLDvd18EHe2krPFhVPgHW3p9GmVPREx3LAieWy9hA118J17faSPsngQK7jmZipDV5ewW
+#   - xpub testnet:  tpubD6NzVbkrYhZ4Y93VTDgYCBUg5rkMr7yA5VQanPUrg8gWkQtziFbwXhNKdiNHaK6WZPvKrXZChpUZfLBmPryXtZ7sVzd6MvyMKjA8aAxfsQy
+
+btchot derive -s bip86 --testnet --seed-password '' --account-password '' \
+  "$WALLET_PATH/0.seed" "$WALLET_PATH/0.derive"
+# example output:
+# Account:
+#   - fingerprint:   524975d1
+#   - id:            524975d17986cb5e8ab5cf86ddec4b146be6611a
+#   - derivation:    m=[44ff6cd2]/86'/1'/0'
+#   - xpub:          tpubDDA4WpAzm75zi7eKjuWKxUB7b9V16UHqhApMFeFfPxremDC3J1j4XQXXBLJjSQXzv8GhHnDvbTVNU2xPYgynWiTutaKsypezTA2WuNNubAN
+# Recommended wallet descriptor:
+# tr([44ff6cd2/86h/1h/0h]tpubDDA4WpAzm75zi7eKjuWKxUB7b9V16UHqhApMFeFfPxremDC3J1j4XQXXBLJjSQXzv8GhHnDvbTVNU2xPYgynWiTutaKsypezTA2WuNNubAN/*/*)#97nxrfcc
+
+descriptor_0="tr([44ff6cd2/86h/1h/0h]tpubDDA4...rfcc"
+
+# receiver wallet
+btchot seed -p '' "$WALLET_PATH/1.seed"
+# example output:
+# Master key:
+#   - fingerprint:   1eeadfa5
+#   - id:            1eeadfa5f084acece58580aa34911d5e529407ee
+#   - xpub mainnet:  xpub661MyMwAqRbcFXdrqXuC1q3gSYnV1C9Jx61ByDooJM3PWJYSqbkqHHop8if8VPnXBzSV58kgJUQxXeW1jKGhnG2q5n7TGF9c6H95AESq3gC
+#   - xpub testnet:  tpubD6NzVbkrYhZ4XKpiHitHDkP3mft8zaeNVibVKmrweFoHFbD9upbvRjUeNkjv1tjkytyPgiGYqaF1Dpzd8B7wfhV89NrkwmoqgEjUvFCjrbU
+
+btchot derive -s bip86 --testnet --seed-password '' --account-password '' \
+  "$WALLET_PATH/1.seed" "$WALLET_PATH/1.derive"
+# example output:
+# Account:
+#   - fingerprint:   9d517038
+#   - id:            9d517038d9980a74dd84d0cb0da9bda005d5d0a3
+#   - derivation:    m=[1eeadfa5]/86'/1'/0'
+#   - xpub:          tpubDCSNRAwWUnx8wnCZEXMjMxG4zb9vQZhKTztmQojovDrqjMayjCMML4PMFkQyr8R66pbSkbNMJfDth1GihcFw1mU1GZf2yyQpqRcuG4Rbo4x
+# Recommended wallet descriptor:
+# tr([1eeadfa5/86h/1h/0h]tpubDCSNRAwWUnx8wnCZEXMjMxG4zb9vQZhKTztmQojovDrqjMayjCMML4PMFkQyr8R66pbSkbNMJfDth1GihcFw1mU1GZf2yyQpqRcuG4Rbo4x/*/*)#gd44a8uu
+
+descriptor_1="tr([1eeadfa5/86h/1h/0h]tpubDCSN...a8uu"
+```
+
+We modify the descriptors to use the rgb-wallet expected syntax:
+```sh
+descriptor_0="$(echo $descriptor_0 | sed -e 's/^.*(//' -e 's/).*$//' -e 's#/\*/#/<0;1;9>/#')"
+descriptor_1="$(echo $descriptor_1 | sed -e 's/^.*(//' -e 's/).*$//' -e 's#/\*/#/<0;1;9>/#')"
+```
+
+We setup the RGB wallets:
+```sh
+# issuer/sender
+rgb0 create --wpkh $descriptor_0 issuer
+# example output
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Unable to find or parse config file; using config defaults
+# Loading descriptor from command-line argument ... success
+# Syncing keychain 0 .......... keychain 1 .......... keychain 9 .......... success
+# Saving the wallet as 'issuer' ... success
+
+# receiver
+rgb1 create --wpkh $descriptor_1 rcpt1
+# example output
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Unable to find or parse config file; using config defaults
+# Loading descriptor from command-line argument ... success
+# Syncing keychain 0 .......... keychain 1 .......... keychain 9 .......... success
+# Saving the wallet as 'rcpt1' ... success
+```
+
+We import interface and schema into the RGB wallets:
+```sh
+# issuer/sender
+rgb0 import $INTERFACE_DIR/RGB20.rgb
+# example output:
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Unable to find or parse config file; using config defaults
+# Loading descriptor from wallet issuer ... success
+# Loading stock ... stock file is absent, creating a new one ... success
+# Interface urn:lnp-bp:if:FYGtpt-fMCCitCg-Yo4Tru1X-MAaEkcKa-6inHR1Ji-bm8jtv#planet-avalon-diploma with name RGB20 imported to the stash
+
+rgb0 import $SCHEMATA_DIR/NonInflatableAssets.rgb
+# example output:
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet issuer ... success
+# Loading stock ... success
+# Schema urn:lnp-bp:sc:2wFrMq-DQGYEXLx-YN5TgGiv-M7uxbA56-yqCtf7rd-MNTSvC#carol-politic-lima imported to the stash
+
+rgb0 import $SCHEMATA_DIR/NonInflatableAssets-RGB20.rgb
+# example output:
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet issuer ... success
+# Loading stock ... success
+# Implementation urn:lnp-bp:im:9oYLiu-zqEukeiP-VDk73EQ2-yhSsyQXS-7tX8AU4J-qnnruH#salute-winter-provide of interface urn:lnp-bp:if:FYGtpt-fMCCitCg-Yo4Tru1X-MAaEkcKa-6inHR1Ji-bm8jtv#planet-avalon-diploma for schema urn:lnp-bp:sc:2wFrMq-DQGYEXLx-YN5TgGiv-M7uxbA56-yqCtf7rd-MNTSvC#carol-politic-lima imported to the stash
+
+
+# receiver (same output as issuer/sender)
+rgb1 import $INTERFACE_DIR/RGB20.rgb
+rgb1 import $SCHEMATA_DIR/NonInflatableAssets.rgb
+rgb1 import $SCHEMATA_DIR/NonInflatableAssets-RGB20.rgb
 ```
 
 We retrieve the schema ID and set it as environment variable:
 ```sh
 rgb0 schemata
 # example output:
-# urn:lnp-bp:sc:BEiLYE-am9WhTW1-oK8cpvw4-FEMtzMrf-mKocuGZn-qWK6YF#ginger-parking-nirvana RGB20
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet issuer ... success
+# Loading stock ... success
+# urn:lnp-bp:sc:2wFrMq-DQGYEXLx-YN5TgGiv-M7uxbA56-yqCtf7rd-MNTSvC#carol-politic-lima
 
-schema="urn:lnp-bp:sc:BEiLYE-am...ing-nirvana"
+schema_id="urn:lnp-bp:sc:2wFrMq-DQG...litic-lima
+```
+
+We prepare the required UTXOs:
+```sh
+# generate addresses
+rgb0 address -k 9
+# example output:
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet issuer ... success
+#
+# Term.   Address
+# &9/0    bcrt1qum5l5me9tzfgw2flqvsdevmpk8uye9uh9ju56a
+
+addr_issue="bcrt1qum..."
+
+rgb1 address -k 9
+# example output:
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet rcpt1 ... success
+#
+# Term.   Address
+# &9/0    bcrt1q0g4rh35ql7774da7mcup4p20dmrs429mhzj9rk
+
+addr_receive="bcrt1q0g..."
+
+# fund wallets
+bcli -rpcwallet=miner sendtoaddress "$addr_issue" 1
+bcli -rpcwallet=miner sendtoaddress "$addr_receive" 1
+bcli -rpcwallet=miner -generate 1
+
+# sync wallets and gather outpoints
+rgb0 utxos --sync
+# example output:
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet issuer ... success
+# Syncing keychain 0 .......... keychain 1 .......... keychain 9 ........... success
+#
+# Height     Amount, ṩ    Outpoint
+# bcrt1qum5l5me9tzfgw2flqvsdevmpk8uye9uh9ju56a    &9/0
+# mempool    100000000    ba8ff181e3ecd3800569a99f0807b4f309d71e12ba33dd8be428cf5f235a378c:1
+#
+# Loading descriptor from wallet issuer ... success
+#
+# Wallet total balance: 100000000 ṩ
+
+outpoint_issue="ba8...78c:1"
+
+rgb1 utxos --sync
+# example output:
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet rcpt1 ... success
+# Syncing keychain 0 .......... keychain 1 .......... keychain 9 ........... success
+#
+# Height     Amount, ṩ    Outpoint
+# bcrt1q0g4rh35ql7774da7mcup4p20dmrs429mhzj9rk    &9/0
+# 104        100000000    252e3976b9b467eb232fa88bcbcff6b4a857eb31b2eb039d441d6e4fb5ddee51:1
+#
+# Loading descriptor from wallet rcpt1 ... success
+#
+# Wallet total balance: 100000000 ṩ
+
+outpoint_receive="252...e51:1"
 ```
 
 #### Asset issuance
@@ -335,7 +415,6 @@ use it to actually carry out the issuance.
 To prepare the contract file, we copy the provided template and modify the copy
 to set the required data:
 - issued supply
-- created timestamp
 - closing method
 - issuance txid and vout
 
@@ -344,7 +423,6 @@ given properties and writes the result to the contract definition file):
 ```sh
 sed \
   -e "s/issued_supply/1000/" \
-  -e "s/created_timestamp/$(date +%s)/" \
   -e "s/closing_method/$CLOSING_METHOD/" \
   -e "s/txid:vout/$outpoint_issue/" \
   contracts/usdt.yaml.template > contracts/usdt.yaml
@@ -352,13 +430,19 @@ sed \
 
 To actually issue the asset, run:
 ```sh
-rgb0 issue "$schema" "$IFACE" contracts/usdt.yaml
+rgb0 issue "$schema_id" contracts/usdt.yaml
 # example output:
-# A new contract rgb:2Q7p6zS-JUCTP8pMJ-7fk8QBjYp-ngvHnJiuw-9jh8PPuvy-scKUUkd is issued and added to the stash.
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet issuer ... success
+# Loading stock ... success
+# A new contract rgb:RAfEnGH-vDNMgWuvU-HQUDo6DXj-NhUx3NFBa-Z7787tJgR-1KtBWp is issued and added to the stash.
 # Use `export` command to export the contract.
 
-contract_id="rgb:2Q7...Ukd"
+contract_id="rgb:RAf...BWp"
 ```
+
 This will create a new genesis that includes the asset metadata and the
 allocation of the initial amount to `outpoint_issue`.
 
@@ -366,22 +450,31 @@ You can list known contracts:
 ```sh
 rgb0 contracts
 # example output:
-# rgb:2Q7p6zS-JUCTP8pMJ-7fk8QBjYp-ngvHnJiuw-9jh8PPuvy-scKUUkd
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet issuer ... success
+# Loading stock ... success
+# rgb:RAfEnGH-vDNMgWuvU-HQUDo6DXj-NhUx3NFBa-Z7787tJgR-1KtBWp
 ```
 
 You can show the current known state for the contract:
 ```sh
 rgb0 state "$contract_id" "$IFACE"
 # example output:
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet issuer ... success
+# Loading stock ... success
 # Global:
-#   spec := (naming=(ticker=("USDT"), name=("USD Tether"), details=~), precision=0)
-#   data := (terms=("demo RGB20 asset"), media=~)
+#   spec := (ticker=("USDT"), name=("USD Tether"), details=~, precision=0)
+#   terms := (text=("demo NIA asset"), media=~)
 #   issuedSupply := (1000)
-#   created := (1691496693)
 #
 # Owned:
 #   assetOwner:
-#     amount=1000, utxo=6f6343401fc57c3f6a30043c61023e62311ee2b5d321823843af9cbcbfb2ac7e:1, witness=~ # owner unknown
+#     amount=1000, utxo=bc:opret1st:ba8ff181e3ecd3800569a99f0807b4f309d71e12ba33dd8be428cf5f235a378c:1, witness=~ # owned by the wallet
 ```
 
 #### Transfer
@@ -391,68 +484,55 @@ In order to receive assets, the receiver needs to provide an invoice to the
 sender. The receiver generates an invoice providing the amount to be received
 (here `100`) and the outpoint where the assets should be allocated:
 ```sh
-rgb1 invoice "$contract_id" "$IFACE" 100 "$CLOSING_METHOD:$outpoint_receive"
+rgb1 invoice "$contract_id" "$IFACE" 100
 # example output:
-# rgb:2Q7p6zS-JUCTP8pMJ-7fk8QBjYp-ngvHnJiuw-9jh8PPuvy-scKUUkd/RGB20/100+utxob:ZCTkvDN-mrwDXLSkx-1PKfHuaGH-R7cLf79Rg-YfSUGYn6i-YAS4Ts
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet rcpt1 ... success
+# Loading stock ... success
+# rgb:RAfEnGH-vDNMgWuvU-HQUDo6DXj-NhUx3NFBa-Z7787tJgR-1KtBWp/RGB20/100+bcrt:utxob:upycyqp-ckvZmrFE7-ErgXriscJ-QX4MCXQuf-3D5Ef8DdS-smfFTb
 
-invoice="rgb:2Q7...Ukd/RGB20/100+utxob:ZCT...4Ts"
+invoice="rgb:RAf...BWp/RGB20/100+bcrt:utxob:upy...FTb"
 ```
-Note: this will blind the given outpoint and the invoice will contain a blinded
-UTXO in place of the original outpoint (see the `utxob:` part of the invoice).
+Notes:
+- this will blind the given outpoint and the invoice will contain a blinded
+  UTXO in place of the original outpoint (see the `utxob:` part of the
+  invoice)
+- it is also possible to provide an address instead of a blinded UTXO and in
+  that case the sender will allocate assets to an output of the transaction
+  (the sender will need to also send some bitcoins to the provided address)
 
 ##### Sender: initiate asset transfer
-To send assets, the sender needs to create a consignment and commit to it into
-a bitcoin transaction. We need to create a PSBT and then modify it to include
-the commitment.
+To send assets, the sender needs to create a PSBT and a consignment, then
+modify the PSBT to include a commitment to the consignment. The rgb-wallet
+`prepare` command prepares the PSBT and the `consign` command handles
+consignment preparation and commitment. The `transfer` command does both.
 
-We create the PSBT, using `outpoint_issue` as input and `addr_change` for the
-change (RGB and BTC):
+We create the transfer, providing the receiver's invoice and file names to save
+the consignment and the PSBT.
 ```sh
-bdk -n regtest wallet -w issuer -d "$DESC_TYPE($xpub_der_0)" create_tx \
-  -f 5 --send_all --utxos "$outpoint_issue" --to "$addr_change:0" \
-  --add_string opret
+rgb0 transfer --method $CLOSING_METHOD "$invoice" \
+  "data0/$CONSIGNMENT" "data0/$PSBT"
 # example output:
-# {
-#   "details": {
-#     "confirmation_time": null,
-#     "fee": 630,
-#     "received": 99999370,
-#     "sent": 100000000,
-#     "transaction": null,
-#     "txid": "26a1250ec087138e663cb7be52e13b18758e0257d9aba79d3f6eb0b0516763dd"
-#   },
-#   "psbt": "cHNidP8BAGIBAAAAAX6ssr+8nK9DOIIh07XiHjFiPgJhPAQwaj98xR9AQ2NvAQAAAAD+////Aore9QUAAAAAFgAUHHSbOwzoLIqymVXbcpqsGa4CQToAAAAAAAAAAAdqBW9wcmV0aAAAAAABAN4CAAAAAAEB9PcBuZVCyKTgMO50SVrsjfqdlVTABBB3cMtZaGXMN2MAAAAAAP3///8C/AUQJAEAAAAWABRhzatgiLp38YKt+2na/iB6/Y2MnADh9QUAAAAAFgAU14R57g5DIRPPVSfO8P4ZliGmLPoCRzBEAiAdCmZ/hSk/rZr+G+SGo/Lx8O8ZpAjIihTYcF983h796wIgHnKVCPwfmTIn+EPl8pDXbzHRTVnAn5jBRDCaMYS1SeMBIQPkcWZ9eqvZKlG1QK4t4vplBvahq6fHGp/lezPo9+pznWcAAAABAR8A4fUFAAAAABYAFNeEee4OQyETz1UnzvD+GZYhpiz6IgYClNhrjr91okI1jPK4r97icFId4fmZHKPciyYh7UBuX+MYqD/AnFYAAIABAACAAAAAgAkAAAAAAAAAACICAquWbk66NttJRZuWBIjM4NIbB1bT0/pH5VKyViGyey5TGKg/wJxWAACAAQAAgAAAAIAJAAAAAQAAAAAA"
-# }
-
-echo "cHN...AAA" | base64 -d > "data0/$PSBT"
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet issuer ... success
+# Loading stock ... success
 ```
 
-We then modify the PSBT to set the commitment host:
+The consignment can be inspected by exporting it to yaml, but since the output
+is very long it's best to send the output to a file:
 ```sh
-rgb0 set-host --method "$CLOSING_METHOD" "data0/$PSBT"
-# PSBT file 'data0/tx.psbt' is updated with opret1st host now set.
+rgb0 inspect "data0/$CONSIGNMENT" > consignment.yaml
 ```
-
-We create the transfer, providing the PSBT and the invoice. This generates the
-consignment:
-```sh
-rgb0 transfer --method "$CLOSING_METHOD" "data0/$PSBT" "$invoice" "data0/$CONSIGNMENT"
-# example output:
-# Transfer is created and saved into 'data0/consignment.rgb'.
-# PSBT file 'data0/tx.psbt' is updated with all required commitments and ready to be signed.
-# Stash data are updated.
-```
-
-The consignment can be inspected, but since the output is very long it's best
-to send the output to a file:
-```sh
-rgb0 inspect "data0/$CONSIGNMENT" > consignment.inspect
-```
-To view the result, open the `consignment.inspect` file with a text editor.
+To view the result, open the `consignment.yaml` file with a text viewer or
+editor.
 
 ##### Consignment exchange
-For the purpose of this demo, copying the file over to the receiving node's
-data directory is sufficient:
+For the purpose of this demo, copying the file over to the receiver's data
+directory is sufficient:
 ```sh
 cp data{0,1}/"$CONSIGNMENT"
 ```
@@ -465,41 +545,36 @@ Before a transfer can be safely accepted, it needs to be validated:
 ```sh
 rgb1 validate "data1/$CONSIGNMENT"
 # example output:
-# Consignment has non-mined terminal(s)
-# Non-mined terminals:
-# - f17d544c0ac161f758d379c4366e6ede8f394da9633671908738b415ae5c8fb4
-# Validation warnings:
-# - terminal witness transaction f17d544c0ac161f758d379c4366e6ede8f394da9633671908738b415ae5c8fb4 is not yet mined.
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# The provided consignment is valid
 ```
 
-At this point it's normal that validation reports a warning about the witness
-transaction not been mined, as the sender has not broadcast it yet. The sender
-is waiting for approval from the receiver.
+At this point the witness transaction not been broadcast yet, as the sender is
+waiting for approval from the receiver.
 
 Once validation has passed, the receiver can approve the transfer. For this
 demo let's just assume it happened, in a real-world scenario an [RGB proxy]
 would be typically used for this as well.
 
-##### Sender: sign and broadcast transaction
-With the receiver's approval of the transfer, the transaction can be signed and
-broadcast:
+##### Sender: broadcast transaction
+With the receiver's approval of the transfer, the transaction can be signed,
+finalized and broadcast:
 ```sh
-bdk -n regtest wallet -w issuer -d "$DESC_TYPE($xprv_der_0)" \
-  sign --psbt $(base64 -w0 "data0/$PSBT")
+btchot sign -p '' "data0/$PSBT" "$WALLET_PATH/0.derive"
 # example output:
-# {
-#   "is_finalized": true,
-#   "psbt": "cHNidP8BAH0BAAAAAX6ssr+8nK9DOIIh07XiHjFiPgJhPAQwaj98xR9AQ2NvAQAAAAD+////Aore9QUAAAAAFgAUHHSbOwzoLIqymVXbcpqsGa4CQToAAAAAAAAAACJqILJNu5OPAn29xMK30LPyEYF8BQzo4m4kMqdwQOf+vFMvaAAAACb8A1JHQgGzGylFw6I59wDVj85LlfJSDWRSj1ETsk8raL8NsrHYvNYAALgv5W39fUCA+5Wg2rcfqnBDyRzss7SzfYf8Km8dWDCRECcAAAABuC/lbf19QID7laDatx+qcEPJHOyztLN9h/wqbx1YMJGgDwAAAAGgDwECAAMAAAAAAAAPvcNrn//UdwiEAwAAAAAAAB1R+iZ9g65EZQH+yo6U6Rd5BR49w6kNrogl9GhgX2lPAkkbzeRxlHm2NcOArOXeqIFc56HypcJNjYqcpHODx2ySCGQAAAAAAAAAU/umctyJSLYssZtL73I+o2LndtWGDjf0niWCCTgYfVgAAAEA3gIAAAAAAQH09wG5lULIpOAw7nRJWuyN+p2VVMAEEHdwy1loZcw3YwAAAAAA/f///wL8BRAkAQAAABYAFGHNq2CIunfxgq37adr+IHr9jYycAOH1BQAAAAAWABTXhHnuDkMhE89VJ87w/hmWIaYs+gJHMEQCIB0KZn+FKT+tmv4b5Iaj8vHw7xmkCMiKFNhwX3zeHv3rAiAecpUI/B+ZMif4Q+XykNdvMdFNWcCfmMFEMJoxhLVJ4wEhA+RxZn16q9kqUbVAri3i+mUG9qGrp8can+V7M+j36nOdZwAAAAEBHwDh9QUAAAAAFgAU14R57g5DIRPPVSfO8P4ZliGmLPoiBgKU2GuOv3WiQjWM8riv3uJwUh3h+Zkco9yLJiHtQG5f4xioP8CcVgAAgAEAAIAAAACACQAAAAAAAAABBwABCGsCRzBEAiAJopaRrp3rkRwyFThM4feKs1/LrqP3oLj/4mxEWEX8NgIgWTtPIDgl2pOHAQHcW8Y8L3+kwPYbUfe5IHgE7Q49dpwBIQKU2GuOv3WiQjWM8riv3uJwUh3h+Zkco9yLJiHtQG5f4yb8A1JHQgO4L+Vt/X1AgPuVoNq3H6pwQ8kc7LO0s32H/CpvHVgwkSCzGylFw6I59wDVj85LlfJSDWRSj1ETsk8raL8NsrHYvAAiAgKrlm5OujbbSUWblgSIzODSGwdW09P6R+VSslYhsnsuUxioP8CcVgAAgAEAAIAAAACACQAAAAEAAAAAKfwGTE5QQlA0ALgv5W39fUCA+5Wg2rcfqnBDyRzss7SzfYf8Km8dWDCRIAjJeTBvKvCk+LhBj7FQmWMaz10SJxpnP3PjjR0/gGtNCfwGTE5QQlA0AQhTJmpjuc0zTwj8BU9QUkVUAAAI/AVPUFJFVAEgsk27k48Cfb3EwrfQs/IRgXwFDOjibiQyp3BA5/68Uy8A"
-# }
+# Signing with [44ff6cd2/86h/1h/0h]tpubDDA4WpAzm75zi7eKjuWKxUB7b9V16UHqhApMFeFfPxremDC3J1j4XQXXBLJjSQXzv8GhHnDvbTVNU2xPYgynWiTutaKsypezTA2WuNNubAN/*/*
+#
+# Done 1 signatures
 
-psbt_signed="cHN...y8A"
-
-bdk -n regtest wallet -w issuer -d "$DESC_TYPE($xpub_der_0)" -s "$ELECTRUM" \
-    broadcast --psbt "$psbt_signed"
+btccold finalize "data0/$PSBT"
 # example output:
-# {
-#   "txid": "f17d544c0ac161f758d379c4366e6ede8f394da9633671908738b415ae5c8fb4"
-# }
+# 020000000001018c375a235fcf28e48bdd33ba121ed709f3b407089fa9690580d3ece381f18fba0100000000000000000270dff505000000001600149ab996b5069011b00ecfa17c3a1a518342a057ba0000000000000000226a20a7e26764375ffda9bad7a8c6986968ae3103a51eb3242be7d8bffb114f74f90f0247304402207fdc3c501f9cf282e7fc27a766054858c4c03de3b3860cfb29b42855e909848202207f693b566ec39ccf4f53ba78d95514edf0562b9ff36941de84ee4bb9467b8fcb01210387aee261073759fc1f27cde0c533204a06063ffe1f5e344c776fff52f5481a2c00000000
+
+tx="020...000"
+
+bcli sendrawtransaction "$tx"
 ```
 
 ##### Transaction confirmation
@@ -507,8 +582,45 @@ Now the transaction has been broadcast, let's confirm it:
 ```sh
 bcli -rpcwallet=miner -generate 1
 ```
+
 In real-world scenarios the parties wait for the transaction to be included in
 a block.
+
+##### Wallet synchronization
+Once the transaction has been confirmed, wallets need to be updated:
+```sh
+rgb0 utxos --sync
+# example output:
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet issuer ... success
+# Syncing keychain 0 .......... keychain 1 .......... keychain 9 ............ success
+#
+# Height     Amount, ṩ    Outpoint
+# bcrt1qn2ueddgxjqgmqrk0597r5xj3sdp2q4a6zxp4qx    &9/1
+# 105         99999600    e7b8deefc83f56e5e60046367a338dd6b687371ace6aa9d1be0a6a22d6228c60:0
+#
+# Loading descriptor from wallet issuer ... success
+#
+# Wallet total balance: 99999600 ṩ
+
+rgb1 utxos --sync
+# example output:
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet rcpt1 ... success
+# Syncing keychain 0 .......... keychain 1 .......... keychain 9 ........... success
+#
+# Height     Amount, ṩ    Outpoint
+# bcrt1q0g4rh35ql7774da7mcup4p20dmrs429mhzj9rk    &9/0
+# 104        100000000    252e3976b9b467eb232fa88bcbcff6b4a857eb31b2eb039d441d6e4fb5ddee51:1
+#
+# Loading descriptor from wallet rcpt1 ... success
+#
+# Wallet total balance: 100000000 ṩ
+```
 
 ##### Receiver: accept transfer
 Once the transaction has been confirmed, the receiver can accept the transfer,
@@ -516,66 +628,76 @@ which is required to complete the transfer and update the contract state:
 ```sh
 rgb1 accept "data1/$CONSIGNMENT"
 # example output:
-# Consignment is valid
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet rcpt1 ... success
+# Loading stock ... success
 #
 # Transfer accepted into the stash
 ```
+
 Note that accepting a transfer first validates its consignment.
 
 Let's see the updated contract state, from the receiver's point of view:
 ```sh
 rgb1 state "$contract_id" "$IFACE"
 # example output:
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet rcpt1 ... success
+# Loading stock ... success
 # Global:
-#   spec := (naming=(ticker=("USDT"), name=("USD Tether"), details=~), precision=0)
-#   data := (terms=("demo RGB20 asset"), media=~)
+#   spec := (ticker=("USDT"), name=("USD Tether"), details=~, precision=0)
+#   terms := (text=("demo NIA asset"), media=~)
 #   issuedSupply := (1000)
-#   created := (1691496693)
 #
 # Owned:
 #   assetOwner:
-#     amount=900, utxo=f17d544c0ac161f758d379c4366e6ede8f394da9633671908738b415ae5c8fb4:0, witness=f17d544c0ac161f758d379c4366e6ede8f394da9633671908738b415ae5c8fb4 # owner unknown
-#     amount=100, utxo=bbc274a1f145552a6f22cab912c9b1903fb30333128b3b0f22212f2aa87772e2:0, witness=f17d544c0ac161f758d379c4366e6ede8f394da9633671908738b415ae5c8fb4 # owner unknown
-#     amount=1000, utxo=6f6343401fc57c3f6a30043c61023e62311ee2b5d321823843af9cbcbfb2ac7e:1, witness=~ # owner unknown
+#     amount=100, utxo=bc:opret1st:252e3976b9b467eb232fa88bcbcff6b4a857eb31b2eb039d441d6e4fb5ddee51:1, witness=bc:e7b8deefc83f56e5e60046367a338dd6b687371ace6aa9d1be0a6a22d6228c60 # owned by the wallet
 ```
-The allocations for the original issuance and the transfer can be seen. The
-receiver can recognize its allocation from the `utxo`, which corresponds to the
-`outpoint_receive` provided to generate the invoice.
 
-##### Sender: accept transfer
+##### Transfer complete
 The sender doesn't need to explicitly accept the transfer, as it's automatically
 accepted when creating it.
 
-The contract state already reflects the updated situation:
+The contract state reflects the updated situation:
 ```sh
 rgb0 state "$contract_id" "$IFACE"
 # example output:
+# RGB: command-line wallet for RGB smart contracts
+#      by LNP/BP Standards Association
+#
+# Loading descriptor from wallet issuer ... success
+# Loading stock ... success
 # Global:
-#   spec := (naming=(ticker=("USDT"), name=("USD Tether"), details=~), precision=0)
-#   data := (terms=("demo RGB20 asset"), media=~)
+#   spec := (ticker=("USDT"), name=("USD Tether"), details=~, precision=0)
+#   terms := (text=("demo NIA asset"), media=~)
 #   issuedSupply := (1000)
-#   created := (1691496693)
 #
 # Owned:
 #   assetOwner:
-#     amount=900, utxo=f17d544c0ac161f758d379c4366e6ede8f394da9633671908738b415ae5c8fb4:0, witness=f17d544c0ac161f758d379c4366e6ede8f394da9633671908738b415ae5c8fb4 # owner unknown
-#     amount=1000, utxo=6f6343401fc57c3f6a30043c61023e62311ee2b5d321823843af9cbcbfb2ac7e:1, witness=~ # owner unknown
+#     amount=900, utxo=bc:opret1st:e7b8deefc83f56e5e60046367a338dd6b687371ace6aa9d1be0a6a22d6228c60:0, witness=bc:e7b8deefc83f56e5e60046367a338dd6b687371ace6aa9d1be0a6a22d6228c60 # owned by the wallet
 ```
+Both the bitcoin and RGB changes have been allocated to an outpout of the
+transaction.
 
 Since the `outpoint_receive` was blinded during invoice generation, the payer
-has no information on where the asset was allocated by the transfer, so the
-receiver's allocation is not visible in the contract state on the sender's
-side.
+has no information on where the asset was allocated by the transfer.
 
+## Acknowledgments
+This project was originally based on the rgb-node demo by [St333p] (version
+0.1) and [grunch]'s [guide].
 
-[BDK]: https://github.com/bitcoindevkit/bdk-cli
 [RGB HTTP JSON-RPC]: https://github.com/RGB-Tools/rgb-http-json-rpc
 [RGB proxy]: https://github.com/RGB-Tools/rgb-proxy-server
 [St333p]: https://github.com/St333p
 [cargo]: https://github.com/rust-lang/cargo
+[descriptor-wallet]: https://github.com/BP-WG/descriptor-wallet
 [docker compose]: https://docs.docker.com/compose/install/
 [docker]: https://docs.docker.com/get-docker/
 [git]: https://git-scm.com/downloads
 [grunch]: https://github.com/grunch
 [guide]: https://grunch.dev/blog/rgbnode-tutorial/
-[rgb-contracts]: https://github.com/RGB-WG/rgb
+[rgb-wallet]: https://github.com/RGB-WG/rgb
