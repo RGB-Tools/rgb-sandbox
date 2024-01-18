@@ -51,6 +51,7 @@ re-installed on the next run.
 - [cargo]
 - [docker]
 - [docker compose]
+- sqlite3 development library (e.g. `libsqlite3-dev` on Debian-like systems)
 
 ## Sandbox exploration
 The services started with docker compose simulate a small network with a
