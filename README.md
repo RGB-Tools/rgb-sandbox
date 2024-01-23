@@ -569,7 +569,7 @@ side.
 
 [BDK]: https://github.com/bitcoindevkit/bdk-cli
 [RGB HTTP JSON-RPC]: https://github.com/RGB-Tools/rgb-http-json-rpc
-[RGB proxy]: https://github.com/grunch/rgb-proxy-server
+[RGB proxy]: https://github.com/RGB-Tools/rgb-proxy-server
 [St333p]: https://github.com/St333p
 [cargo]: https://github.com/rust-lang/cargo
 [docker compose]: https://docs.docker.com/compose/install/
