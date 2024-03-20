@@ -485,7 +485,7 @@ With the receiver's approval of the transfer, the transaction can be signed and
 broadcast:
 ```sh
 bdk -n regtest wallet -w issuer -d "$DESC_TYPE($xprv_der_0)" \
-  sign --psbt $(base64 -w0 "data0/$PSBT")
+  sign --psbt $(cat data0/$PSBT | base64 | tr -d '\r\n')
 # example output:
 # {
 #   "is_finalized": true,

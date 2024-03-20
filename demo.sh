@@ -165,7 +165,7 @@ check_schemata_version() {
 
 check_tools() {
     _subtit "checking required tools"
-    local required_tools="base64 cargo cut docker grep head jq sha256sum"
+    local required_tools="base64 cargo cut docker grep head jq nc sha256sum tr"
     for tool in $required_tools; do
         if ! which "$tool" >/dev/null; then
             _die "could not find reruired tool \"$tool\", please install it and try again"
@@ -305,12 +305,8 @@ start_services() {
     _subtit "stopping services"
     docker compose down
     _subtit "checking bound ports"
-    if ! which ss >/dev/null; then
-        _log "ss not available, skipping bound ports check"
-        return
-    fi
     # see docker-compose.yml for the exposed ports
-    if [ -n "$(ss -HOlnt 'sport = :50001')" ];then
+    if nc -z localhost 50001;then
         _die "port 50001 is already bound, electrs service can't start"
     fi
     _subtit "starting services"
@@ -439,7 +435,7 @@ transfer_create() {
 
     ## extract PSBT data
     local decoded_psbt
-    decoded_psbt="$(_trace "${BCLI[@]}" decodepsbt "$(base64 -w0 "$send_data/$PSBT")")"
+    decoded_psbt="$(_trace "${BCLI[@]}" decodepsbt "$(base64_file_nowrap "$send_data/$PSBT")")"
     if [ $DEBUG = 1 ]; then
         _log "showing PSBT including RGB transfer data"
         echo "$decoded_psbt" | jq
@@ -478,9 +474,10 @@ transfer_complete() {
     local der_xprv der_xpub psbt_finalized psbt_signed
     der_xprv=${DER_XPRV_MAP[$SEND_WLT]}
     der_xpub=${DER_XPUB_MAP[$SEND_WLT]}
+
     psbt_signed=$(_trace "$BDKI" -n $NETWORK wallet -w "$SEND_WLT" \
         -d "${DESC_TYPE}($der_xprv)" sign \
-        --psbt "$(base64 -w0 "$send_data/$PSBT")")
+        --psbt "$(base64_file_nowrap "$send_data/$PSBT")")
     psbt_finalized=$(echo "$psbt_signed" \
         | jq -r 'select(.is_finalized = true) |.psbt')
     [ -n "$psbt_finalized" ] || _die "error signing or finalizing PSBT"
@@ -523,6 +520,15 @@ help() {
     echo "    -h --help     show this help message"
     echo "    -t --tapret   user tapret1st closing method"
     echo "    -v --verbose  enable verbose output"
+}
+
+base64_file_nowrap() {
+    # This function encodes the specified file to base64 format without wrapping lines.
+    # By default, Linux systems wrap base64 output every 76 columns. We use 'tr -d' to remove whitespaces.
+    # Note that the option '-w0' for 'base64' doesn't work on Mac OS X due to different flags.
+    # Arguments:
+    #   $1: File path to be encoded
+    cat "$1" | base64 | tr -d '\r\n'
 }
 
 
