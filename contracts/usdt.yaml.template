@@ -1,7 +1,7 @@
 consensus: bitcoin
 testnet: true
 codexId: znwQGVhW-rfRa8el-pNaAsUW-UWxXsB_-4UlC~Tf-TERhBm4#mirage-queen-delphi
-name: USDT Token
+name: USDT
 method: issue
 timestamp: "2024-12-18T10:32:00-02:00"
 

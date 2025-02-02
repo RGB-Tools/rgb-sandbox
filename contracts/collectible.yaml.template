@@ -1,7 +1,7 @@
 consensus: bitcoin
 testnet: true
 codexId: TUiPwyY~-r0f7kk0-dy3sdfr-nsueQVC-3MtcWPy-xTNfCsM#chris-block-donald
-name: Other token
+name: OtherToken
 method: issue
 timestamp: "2024-12-18T10:32:00-02:00"
 
@@ -10,6 +10,7 @@ global:
     verified: Other asset
   - name: details
     unverified: Demo CFA asset
+    verified: {}
   - name: precision
     verified: centiMilli
   - name: circulating

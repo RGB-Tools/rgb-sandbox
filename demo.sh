@@ -92,11 +92,11 @@ _check_wallet_type() {
 
 _gen_addr_rgb() {
     local wallet="$1"
-    _subtit "generating new address for $wallet"
+    _subtit "generating new funding address for $wallet"
     local wallet_id=${WLT_ID_MAP[$wallet]}
-    _trace "${RGB[@]}" -d "data${wallet_id}" address -w "$wallet" >$TRACE_OUT 2>/dev/null
+    _trace "${RGB[@]}" -d "data${wallet_id}" fund "$wallet" >$TRACE_OUT 2>/dev/null
     ADDR="$(awk '/bcrt/ {print $NF}' $TRACE_OUT)"
-    _log "generated address: $ADDR"
+    _log "generated funding address: $ADDR"
 }
 
 _wait_indexers_sync() {
@@ -139,7 +139,7 @@ _sync_wallet() {
     local wallet="$1"
     _subtit "syncing $wallet"
     local wallet_id=${WLT_ID_MAP[$wallet]}
-    _trace "${RGB[@]}" -d "data${wallet_id}" utxos -w "$wallet" --sync
+    _trace "${RGB[@]}" -d "data${wallet_id}" sync "$INDEXER_CLI" "$wallet"
 }
 
 _get_utxo() {
@@ -147,7 +147,7 @@ _get_utxo() {
     local txid="$2"
     _subtit "extracting vout for $wallet (txid: $txid)"
     local wallet_id=${WLT_ID_MAP[$wallet]}
-    _trace "${RGB[@]}" -d "data${wallet_id}" utxos -w "$wallet" >$TRACE_OUT 2>/dev/null
+    _trace "${RGB[@]}" -d "data${wallet_id}" seals "$wallet" >$TRACE_OUT 2>/dev/null
     vout=$(awk "/$txid/ {print \$NF}" $TRACE_OUT | cut -d: -f2)
     [ -n "$vout" ] || _die "couldn't retrieve vout for txid $txid"
     _log "txid $txid, vout: $vout"
@@ -167,7 +167,7 @@ _gen_utxo() {
 _list_unspent() {
     local wallet="$1"
     local wallet_id=${WLT_ID_MAP[$wallet]}
-    _trace "${RGB[@]}" -d "data${wallet_id}" utxos -w "$wallet"
+    _trace "${RGB[@]}" -d "data${wallet_id}" seals "$wallet"
 }
 
 _show_state() {
@@ -183,7 +183,7 @@ _show_state() {
         sync=()
     fi
     _trace "${RGB[@]}" -d "data${wallet_id}" \
-        state -w "$wallet" -a "${sync[@]}" "$contract_id"
+        state -w "$wallet" -goa "${sync[@]}" "$contract_id"
 }
 
 
@@ -235,7 +235,7 @@ set_aliases() {
     BP=("bp-wallet/bin/bp")
     ESPLORA_CLI=("docker" "compose" "exec" "-T" "esplora" "cli")
     INDEXER_CLI="$INDEXER_OPT=$INDEXER_ENDPOINT"
-    RGB=("rgb-wallet/bin/rgb" "-n" "$NETWORK" "$INDEXER_CLI")
+    RGB=("rgb-wallet/bin/rgb" "-n" "$NETWORK") # TODO: We had to get rid of "$INDEXER_CLI")
     if [ "$PROFILE" = "electrum" ]; then
         BCLI=("${BITCOIND_CLI[@]}")
     else
@@ -331,8 +331,8 @@ check_balance() {
             echo " - $outpoint"
         done
         mapfile -t allocations < <("${RGB[@]}" -d "data${wallet_id}" \
-            state -w "$wallet" "$contract_id" 2>/dev/null \
-            | grep '^   \+[0-9]' | awk '{print $1" "$2}')
+            state -w "$wallet" -o "$contract_id" 2>/dev/null \
+            | grep '^[[:space:]]' | awk '{print $2" "$4}')
         _log "allocations:"
         for allocation in "${allocations[@]}"; do
             echo " - $allocation"
@@ -407,7 +407,7 @@ issue_contract() {
         >$TRACE_OUT 2>&1
     issuance="$(cat $TRACE_OUT)"
     echo "$issuance"
-    contract_id="$(echo "$issuance" | grep '^A new contract' | cut -d' ' -f4)"
+    contract_id="$(echo "$issuance" | grep '^A new contract' | cut -d' ' -f7)"
     CONTRACT_ID_MAP[$contract_name]=$contract_id
     _subtit "contract state after issuance"
     _trace "${RGB[@]}" -d "data${wallet_id}" state -go -w "$wallet"
@@ -448,7 +448,7 @@ prepare_rgb_wallet() {
     # RGB setup
     _subtit "creating RGB wallet $wallet"
     wallet_id=${WLT_ID_MAP[$wallet]}
-    _trace "${RGB[@]}" -d "data${wallet_id}" create --"$wallet_type" "${DESC_MAP[$wallet]}" "$wallet"
+    _trace "${RGB[@]}" -d "data${wallet_id}" --init create --"$wallet_type" "$wallet" "${DESC_MAP[$wallet]}"
 }
 
 sign_and_broadcast() {
