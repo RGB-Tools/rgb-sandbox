@@ -1,17 +1,21 @@
-interface: RGB20Fixed
+consensus: bitcoin
+testnet: true
+codexId: znwQGVhW-rfRa8el-pNaAsUW-UWxXsB_-4UlC~Tf-TERhBm4#mirage-queen-delphi
+name: USDT Token
+method: issue
+timestamp: "2024-12-18T10:32:00-02:00"
 
-globals:
-  spec:
-    ticker: USDT
-    name: USD Tether
-    details: ~
-    precision: 0
-  terms:
-    text: demo NIA asset
-    media: ~
-  issuedSupply: issued_supply
+global:
+  - name: name
+    verified: USD Tether
+  - name: ticker
+    verified: USDT
+  - name: precision
+    verified: centiMilli
+  - name: circulating
+    verified: issued_supply
 
-assignments:
-  assetOwner:
-    seal: closing_method:txid:vout
-    amount: issued_supply
+owned:
+  - name: owned
+    seal: txid:vout
+    data: issued_supply

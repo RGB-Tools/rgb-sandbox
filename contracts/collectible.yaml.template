@@ -1,15 +1,21 @@
-interface: RGB25Base
+consensus: bitcoin
+testnet: true
+codexId: TUiPwyY~-r0f7kk0-dy3sdfr-nsueQVC-3MtcWPy-xTNfCsM#chris-block-donald
+name: Other token
+method: issue
+timestamp: "2024-12-18T10:32:00-02:00"
 
-globals:
-  name: Other asset
-  details: Asset description
-  precision: 0
-  terms:
-    text: demo CFA asset
-    media: ~
-  issuedSupply: issued_supply
+global:
+  - name: name
+    verified: Other asset
+  - name: details
+    unverified: Demo CFA asset
+  - name: precision
+    verified: centiMilli
+  - name: circulating
+    verified: issued_supply
 
-assignments:
-  assetOwner:
-    seal: closing_method:txid:vout
-    amount: issued_supply
+owned:
+  - name: owned
+    seal: txid:vout
+    data: issued_supply

@@ -14,15 +14,12 @@ export SEED_PASSWORD="seed test password"
 
 # crate variables
 BP_WALLET_FEATURES="--features=cli,hot"
-BP_WALLET_VER="0.11.0-beta.9"
+BP_WALLET_VER="0.12.0-beta.4"
 RGB_WALLET_FEATURES=""
-RGB_WALLET_VER="0.11.0-beta.9"
+RGB_WALLET_VER="0.12.0-beta.4"
 
-# closing method / derivation variables
-CLOSING_METHODS=("opret1st" "tapret1st")
-
-# rgb-schemata variables
-SCHEMATA_DIR="./rgb-schemata/schemata"
+# RGB wallet types
+WALLET_TYPES=("wpkh" "tapret-key-only")
 
 # indexer variables
 ELECTRUM_PORT=50001
@@ -41,13 +38,7 @@ NC='\033[0m'    # No Color
 
 # maps
 declare -A CONTRACT_ID_MAP
-declare -A CONTRACT_SCHEMA_MAP
 declare -A DESC_MAP
-declare -A IFACE_MAP
-IFACE_MAP["NIA"]="RGB20Fixed"
-IFACE_MAP["CFA"]="RGB25Base"
-declare -A SCHEMA_MAP
-declare -A WLT_CM_MAP
 declare -A WLT_ID_MAP
 
 # copy stderr to fd 4
@@ -91,21 +82,19 @@ _trace() {
 }
 
 # internal functions
-_check_method() {
+_check_wallet_type() {
     local match="$1"
-    for m in "${CLOSING_METHODS[@]}"; do
+    for m in "${WALLET_TYPES[@]}"; do
         [ "$m" = "$match" ] && return
     done
-    _die "unknown $match closing method"
+    _die "unknown $match wallet type"
 }
 
 _gen_addr_rgb() {
     local wallet="$1"
-    local keychain="$2"
     _subtit "generating new address for $wallet"
     local wallet_id=${WLT_ID_MAP[$wallet]}
-    _trace "${RGB[@]}" -d "data${wallet_id}" address -w "$wallet" \
-        -k "$keychain" >$TRACE_OUT 2>/dev/null
+    _trace "${RGB[@]}" -d "data${wallet_id}" address -w "$wallet" >$TRACE_OUT 2>/dev/null
     ADDR="$(awk '/bcrt/ {print $NF}' $TRACE_OUT)"
     _log "generated address: $ADDR"
 }
@@ -117,7 +106,7 @@ _wait_indexers_sync() {
     if [ "$PROFILE" = "electrum" ]; then
         local electrum_json electrum_res
         # shellcheck disable=2089
-        electrum_json="{\"jsonrpc\": \"2.0\", \"method\": \"blockchain.block.header\", \"params\": [$block_count], \"id\": 0}"
+        electrum_json="{\"jsonrpc\": \"2.0\", \"wallet_type\": \"blockchain.block.header\", \"params\": [$block_count], \"id\": 0}"
         while :; do
             electrum_res="$(echo "$electrum_json" \
                 | netcat -w1 localhost $ELECTRUM_PORT \
@@ -166,16 +155,8 @@ _get_utxo() {
 
 _gen_utxo() {
     local wallet="$1"
-    local keychain="$2"
-    if [ -z "$keychain" ]; then
-        if [ "${WLT_CM_MAP[$wallet]}" = "opret1st" ]; then
-            keychain=9
-        else
-            keychain=10
-        fi
-    fi
-    _gen_addr_rgb "$wallet" "$keychain"
-    _subtit "sending funds to $wallet on keychain $keychain"
+    _gen_addr_rgb "$wallet"
+    _subtit "sending funds to $wallet"
     _trace "${BCLI[@]}" -rpcwallet=miner sendtoaddress "$ADDR" 1 >$TRACE_OUT
     txid="$(cat $TRACE_OUT)"
     _gen_blocks 1
@@ -193,28 +174,20 @@ _show_state() {
     local wallet="$1"
     local contract_name="$2"
     local sync="$3"
-    local contract_id iface schema wallet_id
+    local contract_id wallet_id
     wallet_id=${WLT_ID_MAP[$wallet]}
     contract_id=${CONTRACT_ID_MAP[$contract_name]}
-    schema=${CONTRACT_SCHEMA_MAP[$contract_name]}
-    iface=${IFACE_MAP[$schema]}
     if [ "$sync" = 1 ]; then
         sync=("--sync")
     else
         sync=()
     fi
     _trace "${RGB[@]}" -d "data${wallet_id}" \
-        state -w "$wallet" -a "${sync[@]}" "$contract_id" "$iface"
+        state -w "$wallet" -a "${sync[@]}" "$contract_id"
 }
 
 
 # helper functions
-check_schemata_version() {
-    if ! sha256sum -c --status rgb-schemata.sums; then
-        _die "rgb-schemata version mismatch (hint: try \"git submodule update\")"
-    fi
-}
-
 check_tools() {
     _subtit "checking required tools"
     local required_tools="awk base64 cargo cut docker grep head jq netcat sha256sum tr"
@@ -347,12 +320,9 @@ check_balance() {
     else
         _subtit "checking $contract_name balance for $wallet"
     fi
-    local contract_id allocations amount wallet_id schema iface
+    local contract_id allocations amount wallet_id
     wallet_id=${WLT_ID_MAP[$wallet]}
     contract_id=${CONTRACT_ID_MAP[$contract_name]}
-    schema=${CONTRACT_SCHEMA_MAP[$contract_name]}
-    iface=${IFACE_MAP[$schema]}
-    schema_id=${SCHEMA_MAP[$schema]}
     mapfile -t outpoints < <(_list_unspent "$wallet" | awk '/:[0-9]+$/ {print $NF}')
     BALANCE=0
     if [ "${#outpoints[@]}" -gt 0 ]; then
@@ -361,7 +331,7 @@ check_balance() {
             echo " - $outpoint"
         done
         mapfile -t allocations < <("${RGB[@]}" -d "data${wallet_id}" \
-            state -w "$wallet" "$contract_id" "$iface" 2>/dev/null \
+            state -w "$wallet" "$contract_id" 2>/dev/null \
             | grep '^   \+[0-9]' | awk '{print $1" "$2}')
         _log "allocations:"
         for allocation in "${allocations[@]}"; do
@@ -420,34 +390,27 @@ import_contract() {
 issue_contract() {
     local wallet="$1"
     local contract_name="$2"
-    local schema="$3"
-    local method="$4"
-    _tit "issuing $schema contract $contract_name ($method)"
-    _check_method "$method"
-    local contract_base contract_tmpl contract_yaml iface schema_id
+    _tit "issuing contract $contract_name"
+    local contract_base contract_tmpl contract_yaml
     local contract_id issuance wallet_id
     wallet_id=${WLT_ID_MAP[$wallet]}
     contract_base=${CONTRACT_DIR}/${contract_name}
     contract_tmpl=${contract_base}.yaml.template
     contract_yaml=${contract_base}.yaml
-    iface=${IFACE_MAP[$schema]}
-    schema_id=${SCHEMA_MAP[$schema]}
     sed \
         -e "s/issued_supply/2000/" \
-        -e "s/closing_method/$method/" \
         -e "s/txid/$TXID_ISSUE/" \
         -e "s/vout/$VOUT_ISSUE/" \
         "$contract_tmpl" > "$contract_yaml"
     _subtit "issuing"
-    _trace "${RGB[@]}" -d "data${wallet_id}" issue -w "$wallet" \
-        "$schema_id" "ssi:$wallet" "$contract_yaml" >$TRACE_OUT 2>&1
+    _trace "${RGB[@]}" -d "data${wallet_id}" issue -w "$wallet" "$contract_yaml" \
+        >$TRACE_OUT 2>&1
     issuance="$(cat $TRACE_OUT)"
     echo "$issuance"
     contract_id="$(echo "$issuance" | grep '^A new contract' | cut -d' ' -f4)"
     CONTRACT_ID_MAP[$contract_name]=$contract_id
-    CONTRACT_SCHEMA_MAP[$contract_name]=$schema
     _subtit "contract state after issuance"
-    _trace "${RGB[@]}" -d "data${wallet_id}" state -w "$wallet" "$contract_id" "$iface" --sync
+    _trace "${RGB[@]}" -d "data${wallet_id}" state -go -w "$wallet"
     [ $DEBUG = 1 ] && _subtit "unspents after issuance" && _list_unspent "$wallet"
 }
 
@@ -459,19 +422,15 @@ prepare_btc_wallet() {
 
 prepare_rgb_wallet() {
     local wallet="$1"
-    local method="$2"
-    _tit "preparing $method wallet $wallet"
-    # closing-method-dependent variables
-    _check_method "$method"
-    local der_scheme desc_opt keychain
-    if [ "$method" = opret1st ]; then
+    local wallet_type="$2"
+    _tit "preparing $wallet_type wallet $wallet"
+    # wallet type-dependent variables
+    _check_wallet_type "$wallet_type"
+    local der_scheme
+    if [ "$wallet_type" = wpkh ]; then
         der_scheme="bip84"
-        desc_opt="--wpkh"
-        keychain="<0;1;9>"
     else
         der_scheme="bip86"
-        desc_opt="--tapret-key-only"
-        keychain="<0;1;9;10>"
     fi
     # BTC setup
     mkdir -p $WALLET_PATH
@@ -481,43 +440,15 @@ prepare_rgb_wallet() {
     _trace "${BPHOT[@]}" derive -N -s $der_scheme \
         "$WALLET_PATH/$wallet.seed" "$WALLET_PATH/$wallet.derive" >$TRACE_OUT
     account="$(cat $TRACE_OUT | awk '/Account/ {print $NF}')"
-    DESC_MAP[$wallet]="$account/$keychain/*"
+    DESC_MAP[$wallet]="$account/<0;1>/*"
     [ $DEBUG = 1 ] && echo "descriptor: ${DESC_MAP[$wallet]}"
     WALLETS+=("$wallet")
     WLT_ID_MAP[$wallet]=$WALLET_NUM
     ((WALLET_NUM+=1))
-    WLT_CM_MAP[$wallet]=$method
     # RGB setup
     _subtit "creating RGB wallet $wallet"
     wallet_id=${WLT_ID_MAP[$wallet]}
-    _trace "${RGB[@]}" -d "data${wallet_id}" create $desc_opt \
-        "${DESC_MAP[$wallet]}" "$wallet"
-    # NIA
-    _subtit "importing NIA schema into $wallet"
-    _trace "${RGB[@]}" -d "data${wallet_id}" import -w "$wallet" \
-        $SCHEMATA_DIR/NonInflatableAssets.rgb >$TRACE_OUT 2>&1
-    schema_nia="$(awk '/^- schema/ {print $NF}' $TRACE_OUT)"
-    # CFA
-    _subtit "importing CFA schema into $wallet"
-    _trace "${RGB[@]}" -d "data${wallet_id}" import -w "$wallet" \
-        $SCHEMATA_DIR/CollectibleFungibleAsset.rgb >$TRACE_OUT 2>&1
-    schema_cfa="$(awk '/^- schema/ {print $NF}' $TRACE_OUT)"
-    # first wallet only
-    if [ "$wallet_id" = 0 ]; then
-        SCHEMA_MAP["NIA"]="$schema_nia"
-        SCHEMA_MAP["CFA"]="$schema_cfa"
-        if [ $DEBUG = 1 ]; then
-            _subtit "schema and interface info"
-            _log "detected schema IDs:"
-            echo "NIA: ${SCHEMA_MAP["NIA"]}"
-            echo "CFA: ${SCHEMA_MAP["CFA"]}"
-            echo
-            _log "schemata:"
-            _trace "${RGB[@]}" -d "data${wallet_id}" schemata -w "$wallet"
-            _log "interfaces:"
-            _trace "${RGB[@]}" -d "data${wallet_id}" interfaces -w "$wallet"
-        fi
-    fi
+    _trace "${RGB[@]}" -d "data${wallet_id}" create --"$wallet_type" "${DESC_MAP[$wallet]}" "$wallet"
 }
 
 sign_and_broadcast() {
@@ -557,7 +488,6 @@ transfer_create() {
     ## data variables
     local contract_id rcpt_data rcpt_id send_data send_id
     local blnc_send blnc_rcpt
-    local schema iface
     SEND_WLT=$(echo "$wallets" |cut -d/ -f1)
     RCPT_WLT=$(echo "$wallets" |cut -d/ -f2)
     send_id=${WLT_ID_MAP[$SEND_WLT]}
@@ -567,8 +497,6 @@ transfer_create() {
     rcpt_data="data${rcpt_id}"
     blnc_send=$(echo "$balances_start" |cut -d/ -f1)
     blnc_rcpt=$(echo "$balances_start" |cut -d/ -f2)
-    schema=${CONTRACT_SCHEMA_MAP[$XFER_CONTRACT_NAME]}
-    iface=${IFACE_MAP[$schema]}
 
     ## starting situation
     _tit "sending $send_amt $XFER_CONTRACT_NAME from $SEND_WLT to $RCPT_WLT"
@@ -594,16 +522,12 @@ transfer_create() {
     if [ "$reuse_invoice" != 1 ]; then
         _subtit "(recipient) preparing invoice"
         if [ "$witness" = 1 ]; then
-            address_mode="-a"
+            address_mode="--wout"
         else
             [ "$NO_GEN_UTXO" != 1 ] && _gen_utxo "$RCPT_WLT"
             address_mode=""
         fi
-        # not quoting $address_mode so it doesn't get passed as "" if empty
-        # shellcheck disable=2086
-        _trace "${RGB[@]}" -d "$rcpt_data" invoice $address_mode \
-            -w "$RCPT_WLT" -i $iface --amount "$send_amt" "$contract_id" \
-            >$TRACE_OUT
+        _trace "${RGB[@]}" -d "$rcpt_data" invoice "$address_mode" -w "$RCPT_WLT" 0 >$TRACE_OUT
         INVOICE="$(cat $TRACE_OUT)"
     else
         _subtit "(recipient) re-using invoice"
@@ -614,11 +538,11 @@ transfer_create() {
     _subtit "(sender) preparing RGB transfer"
     CONSIGNMENT="consignment_${TRANSFER_NUM}.rgb"
     PSBT=tx_${TRANSFER_NUM}.psbt
-    local sats=(--sats 2000)
+    local sats=()
     local fee=()
     [ -n "$SATS" ] && sats=(--sats "$SATS")
     [ -n "$FEE" ] && fee=(--fee "$FEE")
-    _trace "${RGB[@]}" -d "$send_data" transfer -w "$SEND_WLT" \
+    _trace "${RGB[@]}" -d "$send_data" pay -w "$SEND_WLT" \
         "${sats[@]}" "${fee[@]}" \
         "$INVOICE" "$send_data/$CONSIGNMENT" "$send_data/$PSBT"
     if ! ls "$send_data/$CONSIGNMENT" >/dev/null 2>&1; then
@@ -642,22 +566,25 @@ transfer_create() {
     _subtit "(sender) copying consignment to recipient data directory"
     _trace cp {"$send_data","$rcpt_data"}/"$CONSIGNMENT"
     # inspect consignment (output to file as it's very big)
-    _trace "${RGB[@]}" -d "$send_data" inspect \
-        "$send_data/$CONSIGNMENT" "$CONSIGNMENT.yaml"
-    _log "consignment exported to file: $CONSIGNMENT.yaml"
+    # TODO: Re-enable with `rgbx` tool
+    # _trace "${RGB[@]}" -d "$send_data" inspect \
+    #     "$send_data/$CONSIGNMENT" "$CONSIGNMENT.yaml"
+    # _log "consignment exported to file: $CONSIGNMENT.yaml"
 }
 
 transfer_complete() {
+    # TODO: We skip validation for now and process directly to `accept`, since v0.12 doesn't support
+    #       (yet?) separate validation procedure
     ## recipient: validate transfer
-    _subtit "(recipient) validating consignment"
+    _subtit "(recipient) validating & accepting consignment"
     local rcpt_data rcpt_id send_data send_id vldt
     send_id=${WLT_ID_MAP[$SEND_WLT]}
     rcpt_id=${WLT_ID_MAP[$RCPT_WLT]}
     send_data="data${send_id}"
     rcpt_data="data${rcpt_id}"
     # note: all output to stderr
-    _trace "${RGB[@]}" -d "$rcpt_data" validate "$rcpt_data/$CONSIGNMENT" \
-        >$TRACE_OUT 2>&1
+    _trace "${RGB[@]}" -d "data${rcpt_id}" accept -w "$RCPT_WLT" \
+        "$rcpt_data/$CONSIGNMENT" >$TRACE_OUT 2>&1
     vldt="$(cat $TRACE_OUT)"
     [ $DEBUG = 1 ] && echo "$vldt"
     if ! echo "$vldt" | grep -q 'The provided consignment is valid'; then
@@ -673,18 +600,6 @@ transfer_complete() {
     _subtit "syncing wallets"
     _sync_wallet "$SEND_WLT"
     _sync_wallet "$RCPT_WLT"
-
-    ## accept transfer
-    local accept
-    _subtit "(recipient) accepting transfer"
-    # note: all output to stderr
-    _trace "${RGB[@]}" -d "data${rcpt_id}" accept -w "$RCPT_WLT" \
-        "$rcpt_data/$CONSIGNMENT" >$TRACE_OUT 2>&1
-    accept="$(cat $TRACE_OUT)"
-    [ $DEBUG = 1 ] && echo "$accept"
-    if ! echo "$accept" | grep -q 'Transfer accepted into the stash'; then
-        _die "accept failed (transfer $TRANSFER_NUM)"
-    fi
 
     ## ending situation
     [ $DEBUG = 1 ] && _subtit "sender state after transfer" && _show_state "$SEND_WLT" "$XFER_CONTRACT_NAME" 0
@@ -766,13 +681,12 @@ fi
 # initial setup
 _tit "setting up"
 check_tools
-check_schemata_version
 set_aliases
 trap cleanup EXIT
 
 # install crates
-install_rust_crate "bp-wallet" "$BP_WALLET_VER" "$BP_WALLET_FEATURES" "--git https://github.com/BP-WG/bp-wallet --branch master" # commit 139d936
-install_rust_crate "rgb-wallet" "$RGB_WALLET_VER" "$RGB_WALLET_FEATURES" "--git https://github.com/RGB-WG/rgb --branch master" # commit 55a814a
+install_rust_crate "bp-wallet" "$BP_WALLET_VER" "$BP_WALLET_FEATURES" "--git https://github.com/BP-WG/bp-wallet --branch v0.12" # commit 139d936
+install_rust_crate "rgb-wallet" "$RGB_WALLET_VER" "$RGB_WALLET_FEATURES" "--git https://github.com/RGB-WG/rgb --branch v0.12" # commit 55a814a
 
 # complete setup
 if [ -z "$SKIP_INIT" ]; then
@@ -787,15 +701,15 @@ fi
 
 ## full round of opret transfers
 scenario_0() {  # default
-    local method="opret1st"
+    local wallet_type="wpkh"
     # wallets
-    prepare_rgb_wallet wallet_0 $method
-    prepare_rgb_wallet wallet_1 $method
-    prepare_rgb_wallet wallet_2 $method
+    prepare_rgb_wallet wallet_0 $wallet_type
+    prepare_rgb_wallet wallet_1 $wallet_type
+    prepare_rgb_wallet wallet_2 $wallet_type
     # contract issuance
     get_issue_utxo wallet_0
-    issue_contract wallet_0 usdt NIA $method
-    issue_contract wallet_0 collectible CFA $method
+    issue_contract wallet_0 usdt NIA
+    issue_contract wallet_0 collectible CFA
     # export/import contracts
     export_contract usdt wallet_0
     import_contract usdt wallet_1
@@ -831,15 +745,15 @@ scenario_0() {  # default
 
 ## full round of tapret transfers
 scenario_1() {
-    local method="tapret1st"
+    local wallet_type="tapret-key-only"
     # wallets
-    prepare_rgb_wallet wallet_0 $method
-    prepare_rgb_wallet wallet_1 $method
-    prepare_rgb_wallet wallet_2 $method
+    prepare_rgb_wallet wallet_0 $wallet_type
+    prepare_rgb_wallet wallet_1 $wallet_type
+    prepare_rgb_wallet wallet_2 $wallet_type
     # contract issuance
     get_issue_utxo wallet_0
-    issue_contract wallet_0 usdt NIA $method
-    issue_contract wallet_0 collectible CFA $method
+    issue_contract wallet_0 usdt NIA
+    issue_contract wallet_0 collectible CFA
     # export/import contracts
     export_contract usdt wallet_0
     import_contract usdt wallet_1
@@ -875,15 +789,15 @@ scenario_1() {
 
 ## full round of opret transfers (no aborted/retried)
 scenario_10() {
-    local method="opret1st"
+    local wallet_type="wpkh"
     # wallets
-    prepare_rgb_wallet wallet_0 $method
-    prepare_rgb_wallet wallet_1 $method
-    prepare_rgb_wallet wallet_2 $method
+    prepare_rgb_wallet wallet_0 $wallet_type
+    prepare_rgb_wallet wallet_1 $wallet_type
+    prepare_rgb_wallet wallet_2 $wallet_type
     # contract issuance
     get_issue_utxo wallet_0
-    issue_contract wallet_0 usdt NIA $method
-    issue_contract wallet_0 collectible CFA $method
+    issue_contract wallet_0 usdt NIA
+    issue_contract wallet_0 collectible CFA
     # export/import contracts
     export_contract usdt wallet_0
     import_contract usdt wallet_1
@@ -918,15 +832,15 @@ scenario_10() {
 
 ## full round of tapret transfers (no aborted/retried)
 scenario_11() {
-    local method="tapret1st"
+    local wallet_type="tapret-key-only"
     # wallets
-    prepare_rgb_wallet wallet_0 $method
-    prepare_rgb_wallet wallet_1 $method
-    prepare_rgb_wallet wallet_2 $method
+    prepare_rgb_wallet wallet_0 $wallet_type
+    prepare_rgb_wallet wallet_1 $wallet_type
+    prepare_rgb_wallet wallet_2 $wallet_type
     # contract issuance
     get_issue_utxo wallet_0
-    issue_contract wallet_0 usdt NIA $method
-    issue_contract wallet_0 collectible CFA $method
+    issue_contract wallet_0 usdt NIA
+    issue_contract wallet_0 collectible CFA
     # export/import contracts
     export_contract usdt wallet_0
     import_contract usdt wallet_1
