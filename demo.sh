@@ -535,7 +535,8 @@ transfer_create() {
             [ "$NO_GEN_UTXO" != 1 ] && _gen_utxo "$RCPT_WLT"
             address_mode=""
         fi
-        _trace "${RGB[@]}" -d "$rcpt_data" invoice "$address_mode" -w "$RCPT_WLT" 0 >$TRACE_OUT
+        _trace "${RGB[@]}" -d "$rcpt_data" invoice "$address_mode" \
+            -w "$RCPT_WLT" "$contract_id" "$send_amt" >$TRACE_OUT
         INVOICE="$(cat $TRACE_OUT)"
     else
         _subtit "(recipient) re-using invoice"
