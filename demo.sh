@@ -27,6 +27,7 @@ ELECTRUM_ENDPOINT="localhost:$ELECTRUM_PORT"
 ESPLORA_ENDPOINT="http://localhost:8094/regtest/api"
 INDEXER_OPT="--electrum"
 INDEXER_ENDPOINT=$ELECTRUM_ENDPOINT
+INDEXER_CLI="$INDEXER_OPT=$INDEXER_ENDPOINT"
 PROFILE="electrum"
 
 # shell colors
@@ -38,8 +39,12 @@ NC='\033[0m'    # No Color
 
 # maps
 declare -A CONTRACT_ID_MAP
+declare -A CONTRACT_NAME_MAP
 declare -A DESC_MAP
 declare -A WLT_ID_MAP
+
+CONTRACT_NAME_MAP["usdt"]=USDT
+CONTRACT_NAME_MAP["collectible"]=OtherToken
 
 # copy stderr to fd 4
 exec 4>&2
@@ -205,7 +210,8 @@ cleanup() {
     if [ -z "$SKIP_INIT" ] && [ -z "$SKIP_STOP" ]; then
         _subtit "stopping services and cleaning data directories"
         stop_services
-        rm -rf data{0,1,2,core,index}
+        # TODO: re-enable after debug
+        # rm -rf data{0,1,2,core,index}
     else
         _subtit "skipping services stop"
     fi
@@ -234,7 +240,6 @@ set_aliases() {
     BPHOT=("bp-wallet/bin/bp-hot")
     BP=("bp-wallet/bin/bp")
     ESPLORA_CLI=("docker" "compose" "exec" "-T" "esplora" "cli")
-    INDEXER_CLI="$INDEXER_OPT=$INDEXER_ENDPOINT"
     RGB=("rgb-wallet/bin/rgb" "-n" "$NETWORK") # TODO: We had to get rid of "$INDEXER_CLI")
     if [ "$PROFILE" = "electrum" ]; then
         BCLI=("${BITCOIND_CLI[@]}")
@@ -363,7 +368,8 @@ export_contract() {
     contract_file=${CONTRACT_DIR}/${contract_name}.rgb
     contract_id=${CONTRACT_ID_MAP[$contract_name]}
     wallet_id=${WLT_ID_MAP[$wallet]}
-    _trace "${RGB[@]}" -d "data${wallet_id}" export -w "$wallet" "$contract_id" "$contract_file"
+    cp -R "data${wallet_id}/bitcoin.testnet/${CONTRACT_NAME_MAP[$contract_name]}.contract" "$contract_file"
+    #_trace "${RGB[@]}" -d "data${wallet_id}" export -w "$wallet" "$contract_id" "$contract_file"
 }
 
 get_issue_utxo() {
@@ -382,8 +388,9 @@ import_contract() {
     local contract_file wallet_id
     contract_file=${CONTRACT_DIR}/${contract_name}.rgb
     wallet_id=${WLT_ID_MAP[$wallet]}
+    cp -R "$contract_file" "data${wallet_id}/bitcoin.testnet/${CONTRACT_NAME_MAP[$contract_name]}.contract"
     # note: all output to stderr
-    _trace "${RGB[@]}" -d "data${wallet_id}" import -w "$wallet" "$contract_file" 2>&1 | grep Contract
+    #_trace "${RGB[@]}" -d "data${wallet_id}" import -w "$wallet" "$contract_file" 2>&1 | grep Contract
 }
 
 # requires get_issue_utxo to have been called first
@@ -403,6 +410,7 @@ issue_contract() {
         -e "s/vout/$VOUT_ISSUE/" \
         "$contract_tmpl" > "$contract_yaml"
     _subtit "issuing"
+    cp issuers/* "data${wallet_id}/"
     _trace "${RGB[@]}" -d "data${wallet_id}" issue -w "$wallet" "$contract_yaml" \
         >$TRACE_OUT 2>&1
     issuance="$(cat $TRACE_OUT)"
@@ -687,6 +695,8 @@ trap cleanup EXIT
 # install crates
 install_rust_crate "bp-wallet" "$BP_WALLET_VER" "$BP_WALLET_FEATURES" "--git https://github.com/BP-WG/bp-wallet --branch v0.12" # commit 139d936
 install_rust_crate "rgb-wallet" "$RGB_WALLET_VER" "$RGB_WALLET_FEATURES" "--git https://github.com/RGB-WG/rgb --branch v0.12" # commit 55a814a
+
+mkdir "$CONTRACT_DIR"
 
 # complete setup
 if [ -z "$SKIP_INIT" ]; then
