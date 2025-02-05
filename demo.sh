@@ -368,7 +368,8 @@ export_contract() {
     contract_file=${CONTRACT_DIR}/${contract_name}.rgb
     contract_id=${CONTRACT_ID_MAP[$contract_name]}
     wallet_id=${WLT_ID_MAP[$wallet]}
-    cp -R "data${wallet_id}/bitcoin.testnet/${CONTRACT_NAME_MAP[$contract_name]}.contract" "$contract_file"
+    rm -rf "$contract_file"
+    cp -r "data${wallet_id}/bitcoin.testnet/${CONTRACT_NAME_MAP[$contract_name]}.contract" "$contract_file"
     #_trace "${RGB[@]}" -d "data${wallet_id}" export -w "$wallet" "$contract_id" "$contract_file"
 }
 
@@ -388,7 +389,8 @@ import_contract() {
     local contract_file wallet_id
     contract_file=${CONTRACT_DIR}/${contract_name}.rgb
     wallet_id=${WLT_ID_MAP[$wallet]}
-    cp -R "$contract_file" "data${wallet_id}/bitcoin.testnet/${CONTRACT_NAME_MAP[$contract_name]}.contract"
+    rm -rf "data${wallet_id}/bitcoin.testnet/${CONTRACT_NAME_MAP[$contract_name]}.contract"
+    cp -r "$contract_file" "data${wallet_id}/bitcoin.testnet/${CONTRACT_NAME_MAP[$contract_name]}.contract"
     # note: all output to stderr
     #_trace "${RGB[@]}" -d "data${wallet_id}" import -w "$wallet" "$contract_file" 2>&1 | grep Contract
 }
@@ -535,7 +537,7 @@ transfer_create() {
             [ "$NO_GEN_UTXO" != 1 ] && _gen_utxo "$RCPT_WLT"
             address_mode=""
         fi
-        _trace "${RGB[@]}" -d "$rcpt_data" invoice "$address_mode" \
+        _trace "${RGB[@]}" -d "$rcpt_data" invoice $address_mode \
             -w "$RCPT_WLT" "$contract_id" "$send_amt" >$TRACE_OUT
         INVOICE="$(cat $TRACE_OUT)"
     else
