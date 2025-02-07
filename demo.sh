@@ -221,14 +221,20 @@ install_rust_crate() {
     local crate="$1"
     local version="$2"
     local features opts
+    local debug=""
     if [ -n "$3" ]; then
         read -r -a features <<< "$3"
     fi
     if [ -n "$4" ]; then
         read -r -a opts <<< "$4"
     fi
+    if [ $DEBUG = 1 ]; then
+      debug=("--profile" "dev" "--force")
+    else
+      debug=("--profile" "test")
+    fi
     _subtit "installing $crate to ./$crate"
-    cargo install "$crate" --version "$version" --locked \
+    cargo install "$crate" --version "$version" --locked "${debug[@]}" \
         --root "./$crate" "${features[@]}" "${opts[@]}" \
         || _die "error installing $crate"
 }
@@ -669,6 +675,7 @@ while [ -n "$1" ]; do
             ;;
         -v|--verbose)
             DEBUG=1
+            export RUST_BACKTRACE=1
             ;;
         --esplora)
             INDEXER_OPT="--esplora"
