@@ -598,7 +598,7 @@ transfer_complete() {
         "$rcpt_data/$CONSIGNMENT" >$TRACE_OUT 2>&1
     vldt="$(cat $TRACE_OUT)"
     [ $DEBUG = 1 ] && echo "$vldt"
-    if ! echo "$vldt" | grep -q 'The provided consignment is valid'; then
+    if echo "$vldt" | grep -q 'invalid'; then
         _die "validation failed (transfer $TRANSFER_NUM)"
     fi
 
