@@ -3,6 +3,7 @@
 # variables
 CONTRACT_DIR="contracts"
 DEBUG=0
+RECOMPILE=0
 NAME=$(basename "$0")
 NETWORK="regtest"
 TRACE_OUT="trace.out"
@@ -222,6 +223,7 @@ install_rust_crate() {
     local version="$2"
     local features opts
     local debug=""
+    local force=""
     if [ -n "$3" ]; then
         read -r -a features <<< "$3"
     fi
@@ -229,12 +231,15 @@ install_rust_crate() {
         read -r -a opts <<< "$4"
     fi
     if [ $DEBUG = 1 ]; then
-      debug=("--profile" "dev" "--force")
+      debug=("--profile" "dev")
     else
       debug=("--profile" "test")
     fi
+    if [ $RECOMPILE = 1 ]; then
+      force="--force"
+    fi
     _subtit "installing $crate to ./$crate"
-    cargo install "$crate" --version "$version" --locked "${debug[@]}" \
+    cargo install "$crate" --version "$version" --locked "${debug[@]}" $force \
         --root "./$crate" "${features[@]}" "${opts[@]}" \
         || _die "error installing $crate"
 }
@@ -648,6 +653,7 @@ help() {
     echo "    -l --list      list the available scenarios"
     echo "    -s --scenario  run the specified scenario (default: 0)"
     echo "    -v --verbose   enable verbose output"
+    echo "    -r --recompile force complete recompile"
     echo "       --esplora   use esplora as indexer (default: electrum)"
 }
 
@@ -676,6 +682,9 @@ while [ -n "$1" ]; do
         -v|--verbose)
             DEBUG=1
             export RUST_BACKTRACE=1
+            ;;
+        -r|--recompile)
+            RECOMPILE=1
             ;;
         --esplora)
             INDEXER_OPT="--esplora"
