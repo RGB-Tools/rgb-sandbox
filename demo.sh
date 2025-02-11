@@ -655,6 +655,8 @@ help() {
     echo "    -v --verbose   enable verbose output"
     echo "    -r --recompile force complete recompile"
     echo "       --esplora   use esplora as indexer (default: electrum)"
+    echo "    -u --skip-stop skip stopping docker containers after the completion"
+    echo "       --stop      stop docker containers (if running)"
 }
 
 while [ -n "$1" ]; do
@@ -685,6 +687,9 @@ while [ -n "$1" ]; do
             ;;
         -r|--recompile)
             RECOMPILE=1
+            ;;
+        -u|--skip-stop)
+            SKIP_STOP=1
             ;;
         --esplora)
             INDEXER_OPT="--esplora"
