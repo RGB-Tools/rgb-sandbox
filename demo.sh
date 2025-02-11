@@ -482,7 +482,7 @@ sign_and_broadcast() {
         _die "signing failed (transfer $TRANSFER_NUM)"
     fi
     _subtit "(sender) finalizing and broadcasting the PSBT"
-    local broadcast="-p"
+    local broadcast="-b"
     [ "$NO_BROADCAST" = 1 ] && broadcast=""
     _trace "${RGB[@]}" finalize $broadcast "$INDEXER_CLI" -n $NETWORK -d "$send_data" \
         -w "$wallet" "$send_data/$PSBT" "$send_data/${PSBT%psbt}tx"
