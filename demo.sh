@@ -153,7 +153,7 @@ _get_utxo() {
     local txid="$2"
     _subtit "extracting vout for $wallet (txid: $txid)"
     local wallet_id=${WLT_ID_MAP[$wallet]}
-    _trace "${RGB[@]}" -d "data${wallet_id}" seals "$wallet" >$TRACE_OUT 2>/dev/null
+    _trace "${RGB[@]}" -d "data${wallet_id}" seals -w "$wallet" >$TRACE_OUT 2>/dev/null
     vout=$(awk "/$txid/ {print \$NF}" $TRACE_OUT | cut -d: -f2)
     [ -n "$vout" ] || _die "couldn't retrieve vout for txid $txid"
     _log "txid $txid, vout: $vout"
@@ -173,7 +173,7 @@ _gen_utxo() {
 _list_unspent() {
     local wallet="$1"
     local wallet_id=${WLT_ID_MAP[$wallet]}
-    _trace "${RGB[@]}" -d "data${wallet_id}" seals "$wallet"
+    _trace "${RGB[@]}" -d "data${wallet_id}" seals -w "$wallet"
 }
 
 _show_state() {
@@ -211,8 +211,7 @@ cleanup() {
     if [ -z "$SKIP_INIT" ] && [ -z "$SKIP_STOP" ]; then
         _subtit "stopping services and cleaning data directories"
         stop_services
-        # TODO: re-enable after debug
-        # rm -rf data{0,1,2,core,index}
+        rm -rf data{0,1,2,core,index}
     else
         _subtit "skipping services stop"
     fi
@@ -627,8 +626,8 @@ transfer_complete() {
     [ $DEBUG = 1 ] && _subtit "sender state after transfer" && _show_state "$SEND_WLT" "$XFER_CONTRACT_NAME" 0
     [ $DEBUG = 1 ] && _subtit "recipient state after transfer" && _show_state "$RCPT_WLT" "$XFER_CONTRACT_NAME" 0
     _subtit "final balances"
-    check_balance "$SEND_WLT" "$BLNC_SEND" "$XFER_CONTRACT_NAME" 1
     check_balance "$RCPT_WLT" "$BLNC_RCPT" "$XFER_CONTRACT_NAME" 1
+    check_balance "$SEND_WLT" "$BLNC_SEND" "$XFER_CONTRACT_NAME" 1
 
     # increment transfer number
     ((TRANSFER_NUM+=1))
