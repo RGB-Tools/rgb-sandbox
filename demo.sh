@@ -11,6 +11,8 @@ TRANSFER_NUM=0
 WALLET_NUM=0
 WALLET_PATH="wallets"
 WALLETS=()
+SATS=500 # TODO: This is required only for witness-out transfers. We need to account for it
+# TODO: FEE is also used but not defined anywhere
 export SEED_PASSWORD="seed test password"
 
 # crate variables
