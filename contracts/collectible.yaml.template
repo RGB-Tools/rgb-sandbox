@@ -1,6 +1,6 @@
 consensus: bitcoin
 testnet: true
-codexId: TUiPwyY~-r0f7kk0-dy3sdfr-nsueQVC-3MtcWPy-xTNfCsM#chris-block-donald
+codexId: 6bl9LdZ_-BU8Skh9-f~4UazR-TFwyotq-ac4yebi-zodXJnw#weather-motif-patriot
 name: OtherToken
 method: issue
 timestamp: "2024-12-18T10:32:00-02:00"

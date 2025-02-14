@@ -744,28 +744,28 @@ scenario_0() {  # default
     # contract issuance
     get_issue_utxo wallet_0
     issue_contract wallet_0 usdt NIA
-#    issue_contract wallet_0 collectible CFA
+    issue_contract wallet_0 collectible CFA
     # export/import contracts
     export_contract usdt wallet_0
     import_contract usdt wallet_1
     import_contract usdt wallet_2
-#    export_contract collectible wallet_0
-#    import_contract collectible wallet_1
-#    import_contract collectible wallet_2
+    export_contract collectible wallet_0
+    import_contract collectible wallet_1
+    import_contract collectible wallet_2
     # initial balance checks
     check_balance wallet_0 2000 usdt
-#    check_balance wallet_0 2000 collectible
+    check_balance wallet_0 2000 collectible
     # transfers
-#    transfer_create wallet_0/wallet_1 2000/0     100 1900/100  0 0 usdt         # aborted
+    transfer_create wallet_0/wallet_1 2000/0     100 1900/100  0 0 usdt         # aborted
     transfer_assets wallet_0/wallet_1 2000/0     100 1900/100  0 0   usdt         # retried
-#    transfer_assets wallet_0/wallet_1 2000/0     200 1800/200  0 0 collectible  # CFA
+    transfer_assets wallet_0/wallet_1 2000/0     200 1800/200  0 0 collectible  # CFA
     transfer_assets wallet_0/wallet_1 1900/100   200 1700/300  1 0 usdt         # change, witness
     transfer_assets wallet_1/wallet_2  300/0     250   50/250  0 0 usdt         # spend both received allocations
-#    transfer_assets wallet_1/wallet_2  200/0     100  100/100  0 0 collectible  # CFA, spend received allocations
+    transfer_assets wallet_1/wallet_2  200/0     100  100/100  0 0 collectible  # CFA, spend received allocations
     transfer_assets wallet_2/wallet_0  250/1700  100  150/1800 1 0 usdt         # close loop, witness
-#    transfer_assets wallet_2/wallet_0  100/1800   50   50/1850 1 0 collectible  # CFA, close loop, witness
+    transfer_assets wallet_2/wallet_0  100/1800   50   50/1850 1 0 collectible  # CFA, close loop, witness
     transfer_assets wallet_0/wallet_1 1800/50     50 1750/100  0 0 usdt         # spend received back
-#    transfer_assets wallet_0/wallet_1 1850/100    25 1825/125  0 0 collectible  # CFA, spend received back
+    transfer_assets wallet_0/wallet_1 1850/100    25 1825/125  0 0 collectible  # CFA, spend received back
     transfer_assets wallet_1/wallet_2  100/150   100    0/250  0 0 usdt         # spend all (no change)
     transfer_assets wallet_2/wallet_0  250/1750  250    0/2000 1 0 usdt         # spend all (witness)
     # final balance checks
@@ -773,9 +773,9 @@ scenario_0() {  # default
     check_balance wallet_0 2000 usdt
     check_balance wallet_1    0 usdt
     check_balance wallet_2    0 usdt
-#    check_balance wallet_0 1825 collectible
-#    check_balance wallet_1  125 collectible
-#    check_balance wallet_2   50 collectible
+    check_balance wallet_0 1825 collectible
+    check_balance wallet_1  125 collectible
+    check_balance wallet_2   50 collectible
 }
 
 ## full round of tapret transfers
