@@ -557,7 +557,7 @@ transfer_create() {
     fi
     _log "invoice: $INVOICE"
 
-    ## RGB tansfer
+    ## RGB transfer
     _subtit "(sender) preparing RGB transfer"
     CONSIGNMENT="consignment_${TRANSFER_NUM}.rgb"
     PSBT=tx_${TRANSFER_NUM}.psbt
