@@ -365,7 +365,7 @@ check_balance() {
     fi
     if [ "$BALANCE" != "$expected" ]; then
         _die "$(printf '%s' \
-            "balance $BALANCE for contract $contract_id ($contract_name) " \
+            "$wallet balance $BALANCE for $contract_id ($contract_name) " \
             "differs from the expected $expected (transfer $TRANSFER_NUM)")"
     fi
     _log "$(printf '%s' \
@@ -378,11 +378,10 @@ export_contract() {
     local wallet="$2"
     _tit "exporting $contract_name contract from $wallet"
     local contract_file contract_id wallet_id
-    contract_file=${CONTRACT_DIR}/${contract_name}.rgb
     contract_id=${CONTRACT_ID_MAP[$contract_name]}
     wallet_id=${WLT_ID_MAP[$wallet]}
-    rm -rf "$contract_file"
-    cp -r "data${wallet_id}/bitcoin.testnet/${CONTRACT_NAME_MAP[$contract_name]}.*.contract" "$contract_file"
+    rm -rf ${CONTRACT_DIR}/"${CONTRACT_NAME_MAP[$contract_name]}".*.contract
+    cp -r data"${wallet_id}"/bitcoin.testnet/"${CONTRACT_NAME_MAP[$contract_name]}".*.contract "${CONTRACT_DIR}/"
     #_trace "${RGB[@]}" -d "data${wallet_id}" export -w "$wallet" "$contract_id" "$contract_file"
 }
 
@@ -399,11 +398,10 @@ import_contract() {
     local contract_name="$1"
     local wallet="$2"
     _tit "importing $contract_name contract into $wallet"
-    local contract_file wallet_id
-    contract_file=${CONTRACT_DIR}/${contract_name}.rgb
+    local wallet_id
     wallet_id=${WLT_ID_MAP[$wallet]}
-    rm -rf "data${wallet_id}/bitcoin.testnet/${CONTRACT_NAME_MAP[$contract_name]}.contract"
-    cp -r "$contract_file" "data${wallet_id}/bitcoin.testnet/${CONTRACT_NAME_MAP[$contract_name]}.contract"
+    rm -rf data"${wallet_id}"/bitcoin.testnet/"${CONTRACT_NAME_MAP[$contract_name]}".*.contract
+    cp -r $CONTRACT_DIR/"${CONTRACT_NAME_MAP[$contract_name]}".*.contract "data${wallet_id}/bitcoin.testnet/"
     # note: all output to stderr
     #_trace "${RGB[@]}" -d "data${wallet_id}" import -w "$wallet" "$contract_file" 2>&1 | grep Contract
 }
