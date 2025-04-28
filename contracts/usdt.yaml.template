@@ -1,21 +1,21 @@
 consensus: bitcoin
 testnet: true
-codexId: qaeakTdk-FccgZC9-4yYpoHa-quPSbQL-XmyBxtn-2CpD~38#jackson-couple-oberon
+codexId: C11V4boH-t0lNXdS-U6MDKet-us0NCCo-1cWX7xU-7ahdfqw#regard-genius-belgium
 name: USDT
 method: issue
 timestamp: "2024-12-18T10:32:00-02:00"
 
 global:
-  - name: name
-    verified: USD Tether
   - name: ticker
     verified: USDT
+  - name: name
+    verified: USD Tether
   - name: precision
     verified: centiMilli
   - name: circulating
     verified: issued_supply
 
 owned:
-  - name: owned
+  - name: amount
     seal: txid:vout
     data: issued_supply

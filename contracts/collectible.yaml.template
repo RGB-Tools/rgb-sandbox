@@ -1,22 +1,22 @@
 consensus: bitcoin
 testnet: true
-codexId: 6bl9LdZ_-BU8Skh9-f~4UazR-TFwyotq-ac4yebi-zodXJnw#weather-motif-patriot
+codexId: WAHKjUOZ-gjaVJj0-IeQ8OHE-1lysvcD-E~Y~gnx-ZwsOezQ#rapid-forever-nice
 name: OtherToken
 method: issue
 timestamp: "2024-12-18T10:32:00-02:00"
 
 global:
-  - name: name
-    verified: Other asset
   - name: details
     unverified: Demo CFA asset
     verified: {}
+  - name: name
+    verified: Other asset
   - name: precision
     verified: centiMilli
   - name: circulating
     verified: issued_supply
 
 owned:
-  - name: owned
+  - name: amount
     seal: txid:vout
     data: issued_supply

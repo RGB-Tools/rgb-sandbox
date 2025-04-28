@@ -17,9 +17,9 @@ export SEED_PASSWORD="seed test password"
 
 # crate variables
 BP_WALLET_FEATURES="--features=cli,hot"
-BP_WALLET_VER="0.12.0-beta.4"
+BP_WALLET_VER="0.12.0-beta.5"
 RGB_WALLET_FEATURES=""
-RGB_WALLET_VER="0.12.0-beta.4"
+RGB_WALLET_VER="0.12.0-beta.5"
 
 # RGB wallet types
 WALLET_TYPES=("wpkh" "tapret-key-only")
@@ -56,6 +56,7 @@ exec 4>&2
 _die() {
     # always output to stderr (copied to fd 4)
     printf "\n${C4}ERROR: %s${NC}\n" "$@" >&4
+    cat "${TRACE_OUT}"
     exit 1
 }
 
@@ -349,7 +350,7 @@ check_balance() {
         done
         mapfile -t allocations < <("${RGB[@]}" -d "data${wallet_id}" \
             state -w "$wallet" -o "$contract_id" 2>/dev/null \
-            | grep '^[[:space:]]' | awk '{print $2" "$4}')
+            | grep '^[[:space:]]' | awk '{print $3" "$5}')
         _log "allocations:"
         for allocation in "${allocations[@]}"; do
             echo " - $allocation"
@@ -381,7 +382,7 @@ export_contract() {
     contract_id=${CONTRACT_ID_MAP[$contract_name]}
     wallet_id=${WLT_ID_MAP[$wallet]}
     rm -rf "$contract_file"
-    cp -r "data${wallet_id}/bitcoin.testnet/${CONTRACT_NAME_MAP[$contract_name]}.contract" "$contract_file"
+    cp -r "data${wallet_id}/bitcoin.testnet/${CONTRACT_NAME_MAP[$contract_name]}.*.contract" "$contract_file"
     #_trace "${RGB[@]}" -d "data${wallet_id}" export -w "$wallet" "$contract_id" "$contract_file"
 }
 
@@ -424,7 +425,7 @@ issue_contract() {
         -e "s/vout/$VOUT_ISSUE/" \
         "$contract_tmpl" > "$contract_yaml"
     _subtit "issuing"
-    cp issuers/* "data${wallet_id}/"
+    _trace "${RGB[@]}" -d "data${wallet_id}" import issuers/*
     _trace "${RGB[@]}" -d "data${wallet_id}" issue -w "$wallet" "$contract_yaml" \
         >$TRACE_OUT 2>&1
     issuance="$(cat $TRACE_OUT)"
@@ -470,7 +471,8 @@ prepare_rgb_wallet() {
     # RGB setup
     _subtit "creating RGB wallet $wallet"
     wallet_id=${WLT_ID_MAP[$wallet]}
-    _trace "${RGB[@]}" -d "data${wallet_id}" --init create --"$wallet_type" "$wallet" "${DESC_MAP[$wallet]}"
+    _trace "${RGB[@]}" -d "data${wallet_id}" init -q
+    _trace "${RGB[@]}" -d "data${wallet_id}" create --"$wallet_type" "$wallet" "${DESC_MAP[$wallet]}"
 }
 
 sign_and_broadcast() {
@@ -757,7 +759,7 @@ scenario_0() {  # default
     check_balance wallet_0 2000 collectible
     # transfers
     transfer_create wallet_0/wallet_1 2000/0     100 1900/100  0 0 usdt         # aborted
-    transfer_assets wallet_0/wallet_1 2000/0     100 1900/100  0 0   usdt         # retried
+    transfer_assets wallet_0/wallet_1 2000/0     100 1900/100  0 0 usdt         # retried
     transfer_assets wallet_0/wallet_1 2000/0     200 1800/200  0 0 collectible  # CFA
     transfer_assets wallet_0/wallet_1 1900/100   200 1700/300  1 0 usdt         # change, witness
     transfer_assets wallet_1/wallet_2  300/0     250   50/250  0 0 usdt         # spend both received allocations
