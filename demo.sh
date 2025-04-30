@@ -109,7 +109,7 @@ _gen_addr_rgb() {
 }
 
 _wait_indexers_sync() {
-    echo -n "waiting for indexer to have synced"
+    echo -n "Waiting for the indexer to sync ... "
     local block_count
     block_count=$("${BCLI[@]}" getblockcount)
     if [ "$PROFILE" = "electrum" ]; then
@@ -335,7 +335,7 @@ check_balance() {
     local subtit="${4:-0}"
     if [ "$subtit" = 0 ]; then
         _tit "checking $contract_name balance for $wallet"
-    else
+    elif [ "$subtit" = 1 ]; then
         _subtit "checking $contract_name balance for $wallet"
     fi
     local contract_id allocations amount wallet_id
@@ -566,7 +566,7 @@ transfer_create() {
     [ -n "$SATS" ] && sats=(--sats "$SATS")
     [ -n "$FEE" ] && fee=(--fee "$FEE")
     _trace "${RGB[@]}" -d "$send_data" pay -w "$SEND_WLT" \
-        "${sats[@]}" "${fee[@]}" \
+        "${sats[@]}" "${fee[@]}" --force \
         "$INVOICE" "$send_data/$CONSIGNMENT" "$send_data/$PSBT"
     if ! ls "$send_data/$CONSIGNMENT" >/dev/null 2>&1; then
         _die "could not locate consignment file: $send_data/$CONSIGNMENT"
@@ -593,6 +593,8 @@ transfer_create() {
     # _trace "${RGB[@]}" -d "$send_data" inspect \
     #     "$send_data/$CONSIGNMENT" "$CONSIGNMENT.yaml"
     # _log "consignment exported to file: $CONSIGNMENT.yaml"
+
+    [ $DEBUG = 1 ] && _subtit "tentative sender state" && _show_state "$SEND_WLT" "$XFER_CONTRACT_NAME" 0
 }
 
 transfer_complete() {
