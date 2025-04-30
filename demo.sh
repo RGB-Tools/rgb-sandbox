@@ -56,7 +56,6 @@ exec 4>&2
 _die() {
     # always output to stderr (copied to fd 4)
     printf "\n${C4}ERROR: %s${NC}\n" "$@" >&4
-    cat "${TRACE_OUT}"
     exit 1
 }
 
@@ -729,8 +728,8 @@ set_aliases
 trap cleanup EXIT
 
 # install crates
-install_rust_crate "bp-wallet" "$BP_WALLET_VER" "$BP_WALLET_FEATURES" "--git https://github.com/BP-WG/bp-wallet --branch v0.12" # commit 139d936
-install_rust_crate "rgb-wallet" "$RGB_WALLET_VER" "$RGB_WALLET_FEATURES" "--path ../rgb-wallet/cli" # "--git https://github.com/RGB-WG/rgb --branch v0.12" # commit 55a814a
+install_rust_crate "bp-wallet" "$BP_WALLET_VER" "$BP_WALLET_FEATURES" "--git https://github.com/BP-WG/bp-wallet --branch v0.12" # commit 0d439062
+install_rust_crate "rgb-wallet" "$RGB_WALLET_VER" "$RGB_WALLET_FEATURES" "--git https://github.com/RGB-WG/rgb --branch v0.12" # commit 9ffff7fb
 
 mkdir "$CONTRACT_DIR"
 
@@ -768,7 +767,7 @@ scenario_0() {  # default
     check_balance wallet_0 2000 collectible
     # transfers
     transfer_aborted wallet_0/wallet_1 2000/0     100 1900/100  0 0 usdt         # aborted
-    transfer_assets wallet_0/wallet_1 2000/0     100 1900/100  0 0 usdt         # retried
+    transfer_assets wallet_0/wallet_1 2000/0     100 1900/100  0 1 usdt         # retried
     transfer_assets wallet_0/wallet_1 2000/0     200 1800/200  0 0 collectible  # CFA
     transfer_assets wallet_0/wallet_1 1900/100   200 1700/300  1 0 usdt         # change, witness
     transfer_assets wallet_1/wallet_2  300/0     250   50/250  0 0 usdt         # spend both received allocations
