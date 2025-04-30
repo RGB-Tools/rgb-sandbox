@@ -497,6 +497,15 @@ transfer_assets() {
     unset BLNC_RCPT BLNC_SEND RCPT_WLT SEND_WLT
 }
 
+transfer_aborted() {
+    transfer_create "$@"    # parameter pass-through
+    _subtit "(sender) aborting transfer"
+    _sync_wallet "$SEND_WLT"
+    # unset global variables set by transfer operations
+    unset BALANCE CONSIGNMENT PSBT XFER_CONTRACT_NAME
+    unset BLNC_RCPT BLNC_SEND RCPT_WLT SEND_WLT
+}
+
 transfer_create() {
     ## params
     local wallets="$1"          # sender>receiver wallet names
@@ -721,7 +730,7 @@ trap cleanup EXIT
 
 # install crates
 install_rust_crate "bp-wallet" "$BP_WALLET_VER" "$BP_WALLET_FEATURES" "--git https://github.com/BP-WG/bp-wallet --branch v0.12" # commit 139d936
-install_rust_crate "rgb-wallet" "$RGB_WALLET_VER" "$RGB_WALLET_FEATURES" "--git https://github.com/RGB-WG/rgb --branch v0.12" # commit 55a814a
+install_rust_crate "rgb-wallet" "$RGB_WALLET_VER" "$RGB_WALLET_FEATURES" "--path ../rgb-wallet/cli" # "--git https://github.com/RGB-WG/rgb --branch v0.12" # commit 55a814a
 
 mkdir "$CONTRACT_DIR"
 
@@ -758,7 +767,7 @@ scenario_0() {  # default
     check_balance wallet_0 2000 usdt
     check_balance wallet_0 2000 collectible
     # transfers
-    transfer_create wallet_0/wallet_1 2000/0     100 1900/100  0 0 usdt         # aborted
+    transfer_aborted wallet_0/wallet_1 2000/0     100 1900/100  0 0 usdt         # aborted
     transfer_assets wallet_0/wallet_1 2000/0     100 1900/100  0 0 usdt         # retried
     transfer_assets wallet_0/wallet_1 2000/0     200 1800/200  0 0 collectible  # CFA
     transfer_assets wallet_0/wallet_1 1900/100   200 1700/300  1 0 usdt         # change, witness
@@ -802,7 +811,7 @@ scenario_1() {
     check_balance wallet_0 2000 usdt
     check_balance wallet_0 2000 collectible
     # transfers
-    transfer_create wallet_0/wallet_1 2000/0     100 1900/100  0 0 usdt         # aborted
+    transfer_aborted wallet_0/wallet_1 2000/0     100 1900/100  0 0 usdt         # aborted
     transfer_assets wallet_0/wallet_1 2000/0     100 1900/100  0 1 usdt         # retried
     transfer_assets wallet_0/wallet_1 2000/0     200 1800/200  0 0 collectible  # CFA
     transfer_assets wallet_0/wallet_1 1900/100   200 1700/300  1 0 usdt         # change, witness
