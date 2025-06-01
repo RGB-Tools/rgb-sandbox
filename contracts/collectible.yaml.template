@@ -1,6 +1,9 @@
 consensus: bitcoin
 testnet: true
-codexId: WAHKjUOZ-gjaVJj0-IeQ8OHE-1lysvcD-E~Y~gnx-ZwsOezQ#rapid-forever-nice
+issuer:
+  codexId: qg8TdlRF-~RGz7bI-pceS960-evWjLKg-NcWTNWy-D9pIYBA
+  version: 0
+  api: r~mUOw
 name: OtherToken
 method: issue
 timestamp: "2024-12-18T10:32:00-02:00"
@@ -13,10 +16,10 @@ global:
     verified: Other asset
   - name: precision
     verified: centiMilli
-  - name: circulating
+  - name: issued
     verified: issued_supply
 
 owned:
-  - name: amount
+  - name: balance
     seal: txid:vout
     data: issued_supply

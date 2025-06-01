@@ -1,6 +1,9 @@
 consensus: bitcoin
 testnet: true
-codexId: C11V4boH-t0lNXdS-U6MDKet-us0NCCo-1cWX7xU-7ahdfqw#regard-genius-belgium
+issuer:
+  codexId: y6L7YTlM-5_v4LWy-oQsj5hV-I2imvxD-zRu0JBo-yaguhrY
+  version: 0
+  api: rLosfg
 name: USDT
 method: issue
 timestamp: "2024-12-18T10:32:00-02:00"
@@ -12,10 +15,10 @@ global:
     verified: USD Tether
   - name: precision
     verified: centiMilli
-  - name: circulating
+  - name: issued
     verified: issued_supply
 
 owned:
-  - name: amount
+  - name: balance
     seal: txid:vout
     data: issued_supply

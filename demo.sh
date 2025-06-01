@@ -17,9 +17,9 @@ export SEED_PASSWORD="seed test password"
 
 # crate variables
 BP_WALLET_FEATURES="--features=cli,hot"
-BP_WALLET_VER="0.12.0-beta.5"
+BP_WALLET_VER="0.12.0-rc.1"
 RGB_WALLET_FEATURES=""
-RGB_WALLET_VER="0.12.0-beta.5"
+RGB_WALLET_VER="0.12.0-rc.1.1"
 
 # RGB wallet types
 WALLET_TYPES=("wpkh" "tapret-key-only")
