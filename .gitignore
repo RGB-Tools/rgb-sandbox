@@ -15,6 +15,7 @@ wallets/
 # contract generated files
 contracts/*.rgb
 contracts/*.yaml
+contracts/*.contract
 !contracts/*.template
 
 # consignment inspect files

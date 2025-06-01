@@ -1,15 +1,25 @@
-interface: RGB25Base
+consensus: bitcoin
+testnet: true
+issuer:
+  codexId: qg8TdlRF-~RGz7bI-pceS960-evWjLKg-NcWTNWy-D9pIYBA
+  version: 0
+  api: r~mUOw
+name: OtherToken
+method: issue
+timestamp: "2024-12-18T10:32:00-02:00"
 
-globals:
-  name: Other asset
-  details: Asset description
-  precision: 0
-  terms:
-    text: demo CFA asset
-    media: ~
-  issuedSupply: issued_supply
+global:
+  - name: details
+    unverified: Demo CFA asset
+    verified: {}
+  - name: name
+    verified: Other asset
+  - name: precision
+    verified: centiMilli
+  - name: issued
+    verified: issued_supply
 
-assignments:
-  assetOwner:
-    seal: closing_method:txid:vout
-    amount: issued_supply
+owned:
+  - name: balance
+    seal: txid:vout
+    data: issued_supply

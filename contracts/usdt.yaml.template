@@ -1,17 +1,24 @@
-interface: RGB20Fixed
+consensus: bitcoin
+testnet: true
+issuer:
+  codexId: y6L7YTlM-5_v4LWy-oQsj5hV-I2imvxD-zRu0JBo-yaguhrY
+  version: 0
+  api: rLosfg
+name: USDT
+method: issue
+timestamp: "2024-12-18T10:32:00-02:00"
 
-globals:
-  spec:
-    ticker: USDT
-    name: USD Tether
-    details: ~
-    precision: 0
-  terms:
-    text: demo NIA asset
-    media: ~
-  issuedSupply: issued_supply
+global:
+  - name: ticker
+    verified: USDT
+  - name: name
+    verified: USD Tether
+  - name: precision
+    verified: centiMilli
+  - name: issued
+    verified: issued_supply
 
-assignments:
-  assetOwner:
-    seal: closing_method:txid:vout
-    amount: issued_supply
+owned:
+  - name: balance
+    seal: txid:vout
+    data: issued_supply
