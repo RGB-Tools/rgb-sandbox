@@ -5,6 +5,7 @@ CONTRACT_DIR="contracts"
 DEBUG=0
 NAME=$(basename "$0")
 NETWORK="regtest"
+TIMEOUT=100
 TRACE_OUT="trace.out"
 TRANSFER_NUM=0
 WALLET_NUM=0
@@ -94,6 +95,16 @@ _check_method() {
         [ "$m" = "$match" ] && return
     done
     _die "unknown $match closing method"
+}
+
+_check_time() {
+    local start="$1"
+    local end="$2"
+    local name="$3"
+    if [ "$((end - start))" -gt "$TIMEOUT" ]; then
+        docker compose logs --tail=50 "$name"
+        _die "timeout waiting for $name to start"
+    fi
 }
 
 _gen_addr_rgb() {
@@ -316,15 +327,18 @@ start_services() {
     _subtit "starting services"
     docker compose --profile $PROFILE up -d || _die "could not start services"
     echo -n "waiting for services to have started..."
+    start_time=$(date +%s)
     if [ "$PROFILE" = "electrum" ]; then
         # bitcoind
-        until docker compose logs bitcoind |grep -q 'Bound to'; do
+        until docker compose logs bitcoind |grep -q "Bound to"; do
+            _check_time "$start_time" "$(date +%s)" bitcoind
             sleep 1
         done
     fi
     if [ "$PROFILE" = "esplora" ]; then
         # esplora
-        until docker compose logs esplora |grep -q 'Bootstrapped 100%'; do
+        until docker compose logs esplora |grep -q "run: nginx:"; do
+            _check_time "$start_time" "$(date +%s)" esplora
             sleep 1
         done
     fi
